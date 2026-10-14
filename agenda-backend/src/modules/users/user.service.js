@@ -32,6 +32,76 @@ correo,
 id_rol
 };
 }
+
+// Listar usuarios
+async function getUsers() {
+return await userRepository.findAll();
+}
+// Consultar usuario por ID
+async function getUserById(id) {
+const user = await userRepository.findById(id);
+if (!user) {
+const error = new Error('User not found');
+error.status = 404;
+throw error;
+}
+return user;
+}
+// Actualizar usuario
+async function updateUser(id, userData) {
+const user = await userRepository.findById(id);
+if (!user) {
+const error = new Error('User not found');
+error.status = 404;
+throw error;
+}
+const existingEmail =
+await userRepository.findByEmail(userData.correo);
+if (
+existingEmail &&
+existingEmail.id_usuario !== Number(id)
+) {
+const error = new Error('Email is already registered');
+error.status = 409;
+throw error;
+}
+const role =
+await userRepository.findRoleById(userData.id_rol);
+if (!role) {
+const error = new Error('Role does not exist');
+error.status = 400;
+throw error;
+}
+await userRepository.update(id, userData);
+return await userRepository.findById(id);
+}
+// Cambiar estado
+async function changeUserStatus(id, estado) {
+const user = await userRepository.findById(id);
+if (!user) {
+const error = new Error('User not found');
+error.status = 404;
+throw error;
+}
+await userRepository.updateStatus(id, estado);
+return await userRepository.findById(id);
+}
+// Eliminación lógica
+async function deleteUser(id) {
+const user = await userRepository.findById(id);
+if (!user) {
+const error = new Error('User not found');
+error.status = 404;
+throw error;
+}
+await userRepository.softDelete(id);
+}
+
 module.exports = {
-createUser
+createUser,
+getUsers,
+getUserById,
+updateUser,
+changeUserStatus,
+deleteUser
 };
