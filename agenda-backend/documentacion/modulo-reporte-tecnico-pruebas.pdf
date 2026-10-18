@@ -1,0 +1,105 @@
+%PDF-1.4
+%AgendaLetric
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1403 >>
+stream
+BT /F1 20 Tf 48 752 Td (Modulo de Reporte Tecnico) Tj ET
+BT /F1 12 Tf 48 720 Td (AgendaLetric - explicacion del codigo y guia de pruebas) Tj ET
+BT /F1 15 Tf 48 682 Td (Proposito) Tj ET
+BT /F1 11 Tf 48 657 Td (Cada cita atendida conserva un reporte tecnico unico, ligado a la cita.) Tj ET
+BT /F1 11 Tf 48 638 Td (El documento del proyecto describe diagnostico, procedimiento realizado) Tj ET
+BT /F1 11 Tf 48 619 Td (y observaciones como contenido del reporte.) Tj ET
+BT /F1 15 Tf 48 581 Td (Como funciona) Tj ET
+BT /F1 11 Tf 48 556 Td (1. PATCH /api/citas/:id/finalizar recibe diagnostico y procedimiento) Tj ET
+BT /F1 11 Tf 48 537 Td (obligatorios, mas observaciones opcionales.) Tj ET
+BT /F1 11 Tf 48 518 Td (2. El backend verifica el estado EN_PROCESO y los permisos del actor.) Tj ET
+BT /F1 11 Tf 48 499 Td (3. En una transaccion, cambia la cita a ATENDIDA, crea el reporte y) Tj ET
+BT /F1 11 Tf 48 480 Td (registra el evento en el historial. Si un paso falla, revierte todo.) Tj ET
+BT /F1 11 Tf 48 461 Td (4. Cada reporte guarda su fecha automaticamente en MySQL.) Tj ET
+BT /F1 15 Tf 48 423 Td (Archivos principales) Tj ET
+BT /F1 11 Tf 48 398 Td (- citas: validar y coordinar el cierre atomico del servicio.) Tj ET
+BT /F1 11 Tf 48 379 Td (- reportes-tecnicos: validar, consultar y actualizar reportes.) Tj ET
+BT /F1 11 Tf 48 360 Td (- sql/reporte-tecnico.sql: tabla con relacion unica a cita.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1398 >>
+stream
+BT /F1 18 Tf 48 752 Td (Endpoints y permisos) Tj ET
+BT /F1 11 Tf 48 701 Td (Autenticacion: todos los endpoints requieren token JWT.) Tj ET
+BT /F1 11 Tf 48 682 Td (Roles: administrador \(1\) y tecnico asignado \(3\). El control de) Tj ET
+BT /F1 11 Tf 48 663 Td (propiedad impide que un tecnico vea o edite citas de otro tecnico.) Tj ET
+BT /F1 14 Tf 48 625 Td (Finalizar y crear reporte) Tj ET
+BT /F1 11 Tf 48 600 Td (PATCH /api/citas/ID/finalizar) Tj ET
+BT /F1 10 Tf 48 581 Td (JSON: {"diagnostico":"Alternador defectuoso",) Tj ET
+BT /F1 10 Tf 48 562 Td (       "procedimiento_realizado":"Se reemplazo el alternador",) Tj ET
+BT /F1 10 Tf 48 543 Td (       "observaciones":"Prueba de carga correcta"}) Tj ET
+BT /F1 11 Tf 48 524 Td (Respuesta: cita ATENDIDA y reporte creado en la misma operacion.) Tj ET
+BT /F1 14 Tf 48 486 Td (Consultar reporte) Tj ET
+BT /F1 11 Tf 48 461 Td (GET /api/reportes-tecnicos/ID_CITA) Tj ET
+BT /F1 11 Tf 48 442 Td (Devuelve el reporte de la cita; responde 404 si aun no existe.) Tj ET
+BT /F1 14 Tf 48 404 Td (Actualizar reporte) Tj ET
+BT /F1 11 Tf 48 379 Td (PUT /api/reportes-tecnicos/ID_CITA) Tj ET
+BT /F1 11 Tf 48 360 Td (Requiere diagnostico y procedimiento_realizado; observaciones) Tj ET
+BT /F1 11 Tf 48 341 Td (es opcional. El administrador o tecnico asignado puede actualizarlo) Tj ET
+BT /F1 11 Tf 48 322 Td (en cualquier momento, segun la regla confirmada.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1416 >>
+stream
+BT /F1 18 Tf 48 752 Td (SQL y pasos de prueba) Tj ET
+BT /F1 14 Tf 48 701 Td (Base de datos) Tj ET
+BT /F1 11 Tf 48 676 Td (1. Seleccionar agendaletric en MySQL Workbench.) Tj ET
+BT /F1 11 Tf 48 657 Td (2. Ejecutar sql/reporte-tecnico.sql una vez, despues de citas.sql.) Tj ET
+BT /F1 11 Tf 48 638 Td (3. Verificar: SHOW CREATE TABLE reporte_tecnico;) Tj ET
+BT /F1 14 Tf 48 600 Td (Prueba funcional) Tj ET
+BT /F1 11 Tf 48 575 Td (1. Iniciar sesion como administrador o tecnico asignado.) Tj ET
+BT /F1 11 Tf 48 556 Td (2. Usar una cita existente en estado EN_PROCESO.) Tj ET
+BT /F1 11 Tf 48 537 Td (3. Enviar PATCH /api/citas/ID/finalizar con el JSON de la pagina 2.) Tj ET
+BT /F1 11 Tf 48 518 Td (4. Confirmar estado ATENDIDA y el reporte en la respuesta.) Tj ET
+BT /F1 11 Tf 48 499 Td (5. Consultarlo con GET y modificarlo con PUT.) Tj ET
+BT /F1 14 Tf 48 461 Td (Comprobaciones negativas) Tj ET
+BT /F1 11 Tf 48 436 Td (- Diagnostico/procedimiento vacios o ausentes: HTTP 400.) Tj ET
+BT /F1 11 Tf 48 417 Td (- Cita no EN_PROCESO: HTTP 409 y no se crea reporte.) Tj ET
+BT /F1 11 Tf 48 398 Td (- Cliente u otro tecnico: acceso denegado.) Tj ET
+BT /F1 11 Tf 48 379 Td (- Solo puede existir un reporte por cita \(clave UNIQUE\).) Tj ET
+BT /F1 10 Tf 48 341 Td (Nota: el SQL debe ejecutarse en el esquema correcto; la prueba) Tj ET
+BT /F1 10 Tf 48 322 Td (contra el servidor MySQL real queda a cargo del entorno local.) Tj ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000023 00000 n 
+0000000072 00000 n 
+0000000141 00000 n 
+0000000238 00000 n 
+0000000364 00000 n 
+0000001819 00000 n 
+0000001945 00000 n 
+0000003395 00000 n 
+0000003521 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+4989
+%%EOF

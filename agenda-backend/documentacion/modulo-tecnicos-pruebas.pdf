@@ -1,0 +1,71 @@
+%PDF-1.4
+%AgendaLetric
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1469 >>
+stream
+BT /F1 20 Tf 48 752 Td (Modulo de Tecnicos) Tj ET
+BT /F1 12 Tf 48 720 Td (AgendaLetric - explicacion breve y pasos de prueba) Tj ET
+BT /F1 15 Tf 48 682 Td (Proposito) Tj ET
+BT /F1 11 Tf 48 657 Td (Mantiene especialidad y telefono para usuarios con rol TECHNICIAN.) Tj ET
+BT /F1 11 Tf 48 638 Td (El estado se consulta desde usuario.estado; no se duplica ni cambia aqui.) Tj ET
+BT /F1 11 Tf 48 619 Td (El perfil se relaciona directamente con usuario.id_usuario.) Tj ET
+BT /F1 15 Tf 48 581 Td (Endpoints y permisos) Tj ET
+BT /F1 11 Tf 48 556 Td (POST /api/tecnicos - administrador crea perfil para usuario TECHNICIAN.) Tj ET
+BT /F1 11 Tf 48 537 Td (GET /api/tecnicos - administrador lista perfiles.) Tj ET
+BT /F1 11 Tf 48 518 Td (GET /api/tecnicos/:idUsuario - administrador consulta perfil.) Tj ET
+BT /F1 11 Tf 48 499 Td (GET /api/tecnicos/me - tecnico consulta su propio perfil.) Tj ET
+BT /F1 11 Tf 48 480 Td (PUT /api/tecnicos/:idUsuario - administrador actualiza perfil.) Tj ET
+BT /F1 15 Tf 48 442 Td (Flujo interno) Tj ET
+BT /F1 11 Tf 48 417 Td (Rutas aplican JWT y roles; validator verifica ID y campos.) Tj ET
+BT /F1 11 Tf 48 398 Td (Controller maneja HTTP, service valida reglas, repository usa) Tj ET
+BT /F1 11 Tf 48 379 Td (consultas parametrizadas MySQL mediante el pool existente.) Tj ET
+BT /F1 10 Tf 48 341 Td (El documento no define longitud de campos; se aprobaron especialidad) Tj ET
+BT /F1 10 Tf 48 322 Td (hasta 100 y telefono hasta 30 caracteres.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1602 >>
+stream
+BT /F1 18 Tf 48 752 Td (SQL y pruebas) Tj ET
+BT /F1 14 Tf 48 701 Td (Instalacion SQL) Tj ET
+BT /F1 11 Tf 48 676 Td (1. Selecciona la base agendaletric en MySQL Workbench.) Tj ET
+BT /F1 11 Tf 48 657 Td (2. Ejecuta sql/tecnicos.sql una vez, despues de crear usuario.) Tj ET
+BT /F1 11 Tf 48 638 Td (3. Confirma con SHOW CREATE TABLE tecnico;) Tj ET
+BT /F1 14 Tf 48 600 Td (Pruebas API) Tj ET
+BT /F1 11 Tf 48 575 Td (Usa token JWT y base URL http://localhost:3000/api.) Tj ET
+BT /F1 11 Tf 48 556 Td (1. Como administrador, POST /tecnicos:) Tj ET
+BT /F1 10 Tf 48 537 Td ({"id_usuario": 3, "especialidad": "Electricidad automotriz",) Tj ET
+BT /F1 10 Tf 48 518 Td ( "telefono": "3001234567"}) Tj ET
+BT /F1 11 Tf 48 499 Td (El usuario debe existir y tener rol TECHNICIAN.) Tj ET
+BT /F1 11 Tf 48 480 Td (2. GET /tecnicos y GET /tecnicos/3; confirmar datos y estado.) Tj ET
+BT /F1 11 Tf 48 461 Td (3. PUT /tecnicos/3 con especialidad y telefono nuevos.) Tj ET
+BT /F1 11 Tf 48 442 Td (4. Como tecnico ID 3, GET /tecnicos/me devuelve solo su perfil.) Tj ET
+BT /F1 14 Tf 48 404 Td (Casos negativos) Tj ET
+BT /F1 11 Tf 48 379 Td (- Usuario no tecnico/inexistente o perfil repetido: error claro.) Tj ET
+BT /F1 11 Tf 48 360 Td (- Campos vacios, largos o ID invalido: HTTP 400.) Tj ET
+BT /F1 11 Tf 48 341 Td (- Tecnico intentando consultar otro ID: HTTP 403.) Tj ET
+BT /F1 11 Tf 48 322 Td (- Cambio de estado: usar el endpoint existente de usuarios.) Tj ET
+BT /F1 10 Tf 48 284 Td (No se alteran horarios ni citas; ambos siguen referenciando) Tj ET
+BT /F1 10 Tf 48 265 Td (el mismo id_usuario del usuario tecnico.) Tj ET
+endstream
+endobj
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3659
+%%EOF

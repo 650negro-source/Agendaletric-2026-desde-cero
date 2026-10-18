@@ -27,8 +27,8 @@ async function authenticate(req, res, next) {
     }
 
     req.user = {
-      id: user.id_usuario,
-      role: user.id_rol_fk
+      id: Number(user.id_usuario),
+      role: Number(user.id_rol_fk)
     };
 
     next();

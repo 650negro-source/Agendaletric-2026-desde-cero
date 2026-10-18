@@ -1,0 +1,102 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 2737 >>
+stream
+BT /F1 13 Tf 46 748 Td (AGENDALETRIC | MODULO CLIENTES) Tj ET
+BT /F1 9.2 Tf 46 727 Td (Guia breve del codigo, SQL y pruebas manuales) Tj ET
+BT /F1 13 Tf 46 706 Td (1. Ajuste al modelo documentado) Tj ET
+BT /F1 9.2 Tf 46 685 Td (Cliente ahora guarda documento_identidad, telefono, direccion e id_usuario. Nombre, correo y) Tj ET
+BT /F1 9.2 Tf 46 671 Td (contrasena pertenecen a usuario. Cliente ya no almacena placa: Vehiculo es una entidad aparte) Tj ET
+BT /F1 9.2 Tf 46 657 Td (y un cliente puede tener varios.) Tj ET
+BT /F1 9.2 Tf 46 643 Td (POST /api/clientes registra una cuenta y su perfil dentro de una transaccion. El rol se busca) Tj ET
+BT /F1 9.2 Tf 46 629 Td (por nombre CUSTOMER; la contrasena se guarda con bcrypt. Si falla el perfil, tambien se) Tj ET
+BT /F1 9.2 Tf 46 615 Td (revierte la cuenta.) Tj ET
+BT /F1 9.2 Tf 46 601 Td (La placa se registra despues de iniciar sesion mediante /api/vehiculos, como se acordo.) Tj ET
+BT /F1 13 Tf 46 580 Td (2. Archivos y responsabilidad) Tj ET
+BT /F1 9.2 Tf 46 559 Td (cliente.routes.js: registro publico; protege el resto con JWT y roles.) Tj ET
+BT /F1 9.2 Tf 46 545 Td (cliente.validator.js: comprueba campos, formatos, longitudes del esquema y normaliza) Tj ET
+BT /F1 9.2 Tf 46 531 Td (entradas.) Tj ET
+BT /F1 9.2 Tf 46 517 Td (cliente.controller.js: adapta HTTP y delega errores al middleware global.) Tj ET
+BT /F1 9.2 Tf 46 503 Td (cliente.service.js: valida duplicados y coordina hash, perfil y cuenta.) Tj ET
+BT /F1 9.2 Tf 46 489 Td (cliente.repository.js: consultas SQL parametrizadas y transacciones MySQL para usuario +) Tj ET
+BT /F1 9.2 Tf 46 475 Td (cliente.) Tj ET
+BT /F1 9.2 Tf 46 461 Td (app.js: publica las rutas bajo /api/clientes.) Tj ET
+BT /F1 13 Tf 46 440 Td (3. Endpoints y acceso) Tj ET
+BT /F1 9.2 Tf 46 419 Td (POST /api/clientes: registro publico con nombre_completo, documento_identidad, telefono,) Tj ET
+BT /F1 9.2 Tf 46 405 Td (correo, contrasena y direccion opcional.) Tj ET
+BT /F1 9.2 Tf 46 391 Td (GET/PUT /api/clientes/me: cliente autenticado consulta o actualiza su propio perfil \(rol) Tj ET
+BT /F1 9.2 Tf 46 377 Td (CUSTOMER, ID 2\).) Tj ET
+BT /F1 9.2 Tf 46 363 Td (GET /api/clientes, GET/PUT /api/clientes/:id, PATCH /api/clientes/:id/status y DELETE) Tj ET
+BT /F1 9.2 Tf 46 349 Td (/api/clientes/:id: administrador autenticado \(ID 1\).) Tj ET
+BT /F1 9.2 Tf 46 335 Td (Cambiar estado o eliminar logicamente el perfil tambien desactiva la cuenta usuario asociada;) Tj ET
+BT /F1 9.2 Tf 46 321 Td (no borra filas fisicamente.) Tj ET
+BT /F1 9.2 Tf 46 307 Td (Las rutas usan los ID de rol de la semilla existente: SYSTEM_ADMIN=1, CUSTOMER=2,) Tj ET
+BT /F1 9.2 Tf 46 293 Td (TECHNICIAN=3.) Tj ET
+BT /F1 8 Tf 46 30 Td (AgendaLetric | Pagina 1 de 2) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 2748 >>
+stream
+BT /F1 13 Tf 46 748 Td (4. Orden de SQL) Tj ET
+BT /F1 9.2 Tf 46 727 Td (Prerequisito: la base agendaletric ya contiene rol y usuario, y CUSTOMER existe en rol.) Tj ET
+BT /F1 9.2 Tf 46 713 Td (1. Ejecuta una sola vez sql/usuario-correo-activo.sql para cambiar la unicidad global del) Tj ET
+BT /F1 9.2 Tf 46 699 Td (correo por unicidad entre cuentas activas. El indice creado inline en el esquema) Tj ET
+BT /F1 9.2 Tf 46 685 Td (proporcionado se llama correo; verifica con SHOW INDEX FROM usuario antes de ejecutarlo.) Tj ET
+BT /F1 9.2 Tf 46 671 Td (2. Ejecuta sql/cliente.sql para crear la tabla cliente y su FK hacia usuario.) Tj ET
+BT /F1 9.2 Tf 46 657 Td (3. Ejecuta sql/vehiculo.sql para la tabla vehiculo que referencia cliente.) Tj ET
+BT /F1 9.2 Tf 46 643 Td (usuario-correo-activo.sql es una migracion de una sola ejecucion, no la repitas. Los scripts) Tj ET
+BT /F1 9.2 Tf 46 629 Td (CREATE TABLE IF NOT EXISTS no corrigen tablas ya creadas con columnas distintas.) Tj ET
+BT /F1 13 Tf 46 608 Td (5. Prueba paso a paso) Tj ET
+BT /F1 9.2 Tf 46 587 Td (1. Inicia MySQL y configura .env con la base agendaletric; no publiques contrasenas ni) Tj ET
+BT /F1 9.2 Tf 46 573 Td (tokens.) Tj ET
+BT /F1 9.2 Tf 46 559 Td (2. Ejecuta npm run dev desde agenda-backend y confirma conexion MySQL; verifica GET) Tj ET
+BT /F1 9.2 Tf 46 545 Td (/api/health \(HTTP 200\).) Tj ET
+BT /F1 9.2 Tf 46 531 Td (3. Registra POST /api/clientes sin token con JSON: nombre_completo, documento_identidad,) Tj ET
+BT /F1 9.2 Tf 46 517 Td (telefono, correo, contrasena y direccion opcional. Espera HTTP 201; la respuesta no debe) Tj ET
+BT /F1 9.2 Tf 46 503 Td (incluir contrasena ni hash.) Tj ET
+BT /F1 9.2 Tf 46 489 Td (4. Inicia sesion por POST /api/auth/login con ese correo y contrasena; usa data.token como) Tj ET
+BT /F1 9.2 Tf 46 475 Td (Authorization: Bearer <token>.) Tj ET
+BT /F1 9.2 Tf 46 461 Td (5. Prueba GET /api/clientes/me y PUT /api/clientes/me; comprueba que solo cambia el perfil) Tj ET
+BT /F1 9.2 Tf 46 447 Td (autenticado.) Tj ET
+BT /F1 9.2 Tf 46 433 Td (6. Prueba con rol CUSTOMER un endpoint de administrador: debe responder 403. Sin token en) Tj ET
+BT /F1 9.2 Tf 46 419 Td (/me: 401.) Tj ET
+BT /F1 9.2 Tf 46 405 Td (7. Con cuenta SYSTEM_ADMIN prueba GET /api/clientes, GET /api/clientes/<id>, PATCH status y) Tj ET
+BT /F1 9.2 Tf 46 391 Td (DELETE al final. La cuenta eliminada logicamente ya no debe iniciar sesion.) Tj ET
+BT /F1 13 Tf 46 370 Td (Limites de esta verificacion) Tj ET
+BT /F1 9.2 Tf 46 349 Td (No se ejecuto SQL ni se comprobo MySQL real. El paquete no trae framework de pruebas) Tj ET
+BT /F1 9.2 Tf 46 335 Td (automatizadas; las solicitudes de esta guia son pruebas manuales.) Tj ET
+BT /F1 8 Tf 46 30 Td (AgendaLetric | Pagina 2 de 2) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000003013 00000 n 
+0000003139 00000 n 
+0000005939 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+6065
+%%EOF

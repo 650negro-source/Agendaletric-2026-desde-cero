@@ -1,0 +1,133 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 2889 >>
+stream
+BT /F1 13 Tf 44 748 Td (AGENDALETRIC | MODULO CITAS) Tj ET
+BT /F1 9.1 Tf 44 727 Td (Guia breve del codigo, SQL y pruebas manuales) Tj ET
+BT /F1 13 Tf 44 706.4 Td (1. Alcance y reglas implementadas) Tj ET
+BT /F1 9.1 Tf 44 685.4 Td (Cada cita relaciona cliente, vehiculo y tecnico. El cliente solicita fecha/hora; el sistema) Tj ET
+BT /F1 9.1 Tf 44 671.8 Td (asigna al tecnico disponible con menor id_usuario cuya jornada semanal cubra esa hora.) Tj ET
+BT /F1 9.1 Tf 44 658.1999999999999 Td (La anticipacion minima para agendar es 24 horas. Se permite una cita activa por cliente. Si) Tj ET
+BT /F1 9.1 Tf 44 644.5999999999999 Td (no hay tecnico en horario o la hora exacta ya esta tomada, el backend responde 409 y no) Tj ET
+BT /F1 9.1 Tf 44 630.9999999999999 Td (guarda borrador.) Tj ET
+BT /F1 9.1 Tf 44 617.3999999999999 Td (La duracion no esta definida: el sistema solo impide duplicar la misma hora exacta por) Tj ET
+BT /F1 9.1 Tf 44 603.7999999999998 Td (tecnico. No garantiza que turnos en horas diferentes no se solapen.) Tj ET
+BT /F1 9.1 Tf 44 590.1999999999998 Td (Cancelar o reprogramar requiere al menos 12 horas antes de la hora actual de la cita; la) Tj ET
+BT /F1 9.1 Tf 44 576.5999999999998 Td (nueva fecha de una reprogramacion tambien requiere 24 horas de anticipacion. Estas reglas se) Tj ET
+BT /F1 9.1 Tf 44 562.9999999999998 Td (aplican a cliente, administrador y tecnico, conforme a la decision aprobada.) Tj ET
+BT /F1 9.1 Tf 44 549.3999999999997 Td (Las transiciones son PROGRAMADA -> VALIDADA -> EN_PROCESO -> ATENDIDA. La cancelacion usa) Tj ET
+BT /F1 9.1 Tf 44 535.7999999999997 Td (CANCELADA. Reprogramar deja la cita en PROGRAMADA y conserva fecha anterior/nueva en) Tj ET
+BT /F1 9.1 Tf 44 522.1999999999997 Td (historial.) Tj ET
+BT /F1 13 Tf 44 501.5999999999997 Td (2. Archivos y responsabilidades) Tj ET
+BT /F1 9.1 Tf 44 480.5999999999997 Td (cita.routes.js: endpoints y autorizacion por rol.) Tj ET
+BT /F1 9.1 Tf 44 466.99999999999966 Td (cita.validator.js: valida fechas reales, formato de hora, IDs y descripcion.) Tj ET
+BT /F1 9.1 Tf 44 453.39999999999964 Td (cita.controller.js: comunica HTTP con el servicio y middleware de errores.) Tj ET
+BT /F1 9.1 Tf 44 439.7999999999996 Td (cita.service.js: aplica permisos por propietario/tecnico, transiciones y genera codigo de) Tj ET
+BT /F1 9.1 Tf 44 426.1999999999996 Td (asignacion UUID.) Tj ET
+BT /F1 9.1 Tf 44 412.59999999999957 Td (cita.repository.js: transacciones, asignacion automatica, restricciones, historial y) Tj ET
+BT /F1 9.1 Tf 44 398.99999999999955 Td (recordatorios simulados mediante SQL parametrizado.) Tj ET
+BT /F1 9.1 Tf 44 385.3999999999995 Td (app.js: monta el router bajo /api/citas.) Tj ET
+BT /F1 9.1 Tf 44 371.7999999999995 Td (sql/citas.sql: crea cita, historial y registros de recordatorio con FK y restricciones.) Tj ET
+BT /F1 8 Tf 44 30 Td (AgendaLetric | Citas | Pagina 1 de 3) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 1515 >>
+stream
+BT /F1 13 Tf 44 748 Td (3. Endpoints y roles) Tj ET
+BT /F1 9.1 Tf 44 727 Td (POST /api/citas: CUSTOMER \(rol 2\) agenda para si mismo y un vehiculo propio.) Tj ET
+BT /F1 9.1 Tf 44 713.4 Td (GET /api/citas y GET /api/citas/:id: admin \(1\) consulta todo; cliente \(2\) solo lo suyo;) Tj ET
+BT /F1 9.1 Tf 44 699.8 Td (tecnico \(3\) solo lo asignado.) Tj ET
+BT /F1 9.1 Tf 44 686.1999999999999 Td (GET /api/citas/:id/historial: los mismos permisos del detalle.) Tj ET
+BT /F1 9.1 Tf 44 672.5999999999999 Td (PATCH /api/citas/:id/validar, /iniciar y /finalizar: admin \(1\) o el tecnico \(3\) asignado.) Tj ET
+BT /F1 9.1 Tf 44 658.9999999999999 Td (PATCH /api/citas/:id/cancelar y /reprogramar: cliente propietario, administrador o tecnico) Tj ET
+BT /F1 9.1 Tf 44 645.3999999999999 Td (asignado; se verifica la ventana de 12 h.) Tj ET
+BT /F1 9.1 Tf 44 631.7999999999998 Td (Al validar se crean dos registros de recordatorio \(correo/SMS\) con estado SIMULADO. No se) Tj ET
+BT /F1 9.1 Tf 44 618.1999999999998 Td (envia correo, SMS ni se ejecuta un planificador real. fecha_programada registra el momento) Tj ET
+BT /F1 9.1 Tf 44 604.5999999999998 Td (24 h previo a la cita; fecha_envio registra el momento de la simulacion.) Tj ET
+BT /F1 9.1 Tf 44 590.9999999999998 Td (El historial guarda creacion, validacion, inicio/final del servicio, cancelacion y) Tj ET
+BT /F1 9.1 Tf 44 577.3999999999997 Td (reprogramacion. No se elimina fisicamente una cita.) Tj ET
+BT /F1 8 Tf 44 30 Td (AgendaLetric | Citas | Pagina 2 de 3) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 4556 >>
+stream
+BT /F1 13 Tf 44 748 Td (4. Preparar SQL y requisitos) Tj ET
+BT /F1 9.1 Tf 44 727 Td (Antes deben existir rol, usuario, cliente, vehiculo y horario_tecnico. Asegura que CUSTOMER) Tj ET
+BT /F1 9.1 Tf 44 713.4 Td (y TECHNICIAN existan y que clientes tengan vehiculos asociados.) Tj ET
+BT /F1 9.1 Tf 44 699.8 Td (Ejecuta sql/citas.sql una vez en MySQL Workbench conectado a agendaletric. Comprueba) Tj ET
+BT /F1 9.1 Tf 44 686.1999999999999 Td (DESCRIBE cita;, DESCRIBE cita_historial; y DESCRIBE recordatorio;.) Tj ET
+BT /F1 9.1 Tf 44 672.5999999999999 Td (CREATE TABLE IF NOT EXISTS no actualiza tablas preexistentes. No ejecutes cambios) Tj ET
+BT /F1 9.1 Tf 44 658.9999999999999 Td (destructivos; compara la estructura si estas tablas ya existian.) Tj ET
+BT /F1 9.1 Tf 44 645.3999999999999 Td (El script crea FK hacia cliente, vehiculo y usuario; instala primero sus tablas padre.) Tj ET
+BT /F1 9.1 Tf 44 631.7999999999998 Td (ENGINE=InnoDB permite esas relaciones y la base hereda el charset/collation definidos al) Tj ET
+BT /F1 9.1 Tf 44 618.1999999999998 Td (crearla.) Tj ET
+BT /F1 13 Tf 44 597.5999999999998 Td (5. Prueba paso a paso) Tj ET
+BT /F1 9.1 Tf 44 576.5999999999998 Td (1. Inicia MySQL y el backend con npm run dev; comprueba GET /api/health.) Tj ET
+BT /F1 9.1 Tf 44 562.9999999999998 Td (2. Con administrador inicia sesion via POST /api/auth/login y crea un horario para un) Tj ET
+BT /F1 9.1 Tf 44 549.3999999999997 Td (tecnico activo mediante POST /api/horarios: dia_semana ISO, hora_inicio y hora_fin.) Tj ET
+BT /F1 9.1 Tf 44 535.7999999999997 Td (3. Inicia sesion como cliente. Necesita una cuenta CUSTOMER activa y al menos un vehiculo) Tj ET
+BT /F1 9.1 Tf 44 522.1999999999997 Td (propio. Copia su token y el id_vehiculo.) Tj ET
+BT /F1 9.1 Tf 44 508.5999999999997 Td (4. Elige una fecha real que sea al menos 24 horas futura, con dia que coincida con el) Tj ET
+BT /F1 9.1 Tf 44 494.99999999999966 Td (horario del tecnico. POST /api/citas con Authorization Bearer y JSON:) Tj ET
+BT /F1 9.1 Tf 44 481.39999999999964 Td ({"id_vehiculo":ID,"fecha_programada":"AAAA-MM-DD","hora_programada":"HH:MM","descripcion_averia":"Descripcion) Tj ET
+BT /F1 9.1 Tf 44 467.7999999999996 Td (de prueba"}. Espera 201 y guarda id_cita/codigo_asignacion.) Tj ET
+BT /F1 9.1 Tf 44 454.1999999999996 Td (5. Repite el POST como el mismo cliente: debe responder 409 por tener una cita activa. La) Tj ET
+BT /F1 9.1 Tf 44 440.59999999999957 Td (misma hora exacta sin tecnico disponible tambien responde 409.) Tj ET
+BT /F1 9.1 Tf 44 426.99999999999955 Td (6. Prueba GET /api/citas como cliente; debe ver solo su cita. Un cliente distinto no debe) Tj ET
+BT /F1 9.1 Tf 44 413.3999999999995 Td (acceder al detalle \(403\).) Tj ET
+BT /F1 9.1 Tf 44 399.7999999999995 Td (7. Como administrador o tecnico asignado, ejecuta PATCH /api/citas/<id>/validar. Espera) Tj ET
+BT /F1 9.1 Tf 44 386.1999999999995 Td (VALIDADA y recordatorios SIMULADO; revisa SELECT * FROM recordatorio WHERE id_cita=ID; y el) Tj ET
+BT /F1 9.1 Tf 44 372.59999999999945 Td (historial.) Tj ET
+BT /F1 9.1 Tf 44 358.99999999999943 Td (8. Como tecnico asignado, prueba PATCH /api/citas/<id>/iniciar y luego /finalizar. Verifica) Tj ET
+BT /F1 9.1 Tf 44 345.3999999999994 Td (EN_PROCESO, ATENDIDA y nuevas filas en cita_historial.) Tj ET
+BT /F1 9.1 Tf 44 331.7999999999994 Td (9. Para probar reprogramar/cancelar, usa otra cita futura con mas de 12 h restantes. PATCH) Tj ET
+BT /F1 9.1 Tf 44 318.19999999999936 Td (/api/citas/<id>/reprogramar requiere fecha_programada y hora_programada; /cancelar la marca) Tj ET
+BT /F1 9.1 Tf 44 304.59999999999934 Td (CANCELADA y libera la cita activa del cliente.) Tj ET
+BT /F1 13 Tf 44 283.9999999999993 Td (Respuestas y limites) Tj ET
+BT /F1 9.1 Tf 44 262.9999999999993 Td (Entrada invalida: 400; sin sesion: 401; rol/ruta sin permiso: 403; no encontrado: 404; cita) Tj ET
+BT /F1 9.1 Tf 44 249.39999999999932 Td (activa del cliente, hora ocupada, no disponibilidad o cambio tardio: 409.) Tj ET
+BT /F1 9.1 Tf 44 235.79999999999933 Td (No hay reglas de solapamiento por duracion, excepciones de horario, envio externo de) Tj ET
+BT /F1 9.1 Tf 44 222.19999999999933 Td (notificaciones ni integracion de calendario porque esos detalles/proveedores no estan) Tj ET
+BT /F1 9.1 Tf 44 208.59999999999934 Td (implementados. Verifica el SQL y las peticiones en tu MySQL local; aqui solo se ejecutaron) Tj ET
+BT /F1 9.1 Tf 44 194.99999999999935 Td (comprobaciones de sintaxis y pruebas aisladas del servicio.) Tj ET
+BT /F1 8 Tf 44 30 Td (AgendaLetric | Citas | Pagina 3 de 3) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 8 0 R >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000133 00000 n 
+0000000230 00000 n 
+0000003171 00000 n 
+0000003297 00000 n 
+0000004864 00000 n 
+0000004990 00000 n 
+0000009598 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+9724
+%%EOF

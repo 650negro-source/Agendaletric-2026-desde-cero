@@ -1,0 +1,103 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 2664 >>
+stream
+BT /F1 13 Tf 46 748 Td (AGENDALETRIC | MODULO HORARIOS) Tj ET
+BT /F1 9.2 Tf 46 727 Td (Guia corta de codigo, SQL y pruebas manuales) Tj ET
+BT /F1 13 Tf 46 706 Td (1. Alcance) Tj ET
+BT /F1 9.2 Tf 46 685 Td (El documento menciona horarios y disponibilidad, y dice que el tecnico revisa fecha y horario) Tj ET
+BT /F1 9.2 Tf 46 671 Td (de citas. No define campos ni reglas de calendario. Se implementa el alcance previamente) Tj ET
+BT /F1 9.2 Tf 46 657 Td (aprobado: horario semanal por tecnico.) Tj ET
+BT /F1 9.2 Tf 46 643 Td (Esta tabla describe horas habituales de trabajo, no calcula turnos libres. No hay tabla de) Tj ET
+BT /F1 9.2 Tf 46 629 Td (citas conectada, duracion de atencion ni excepciones por fecha; por eso no se crean espacios) Tj ET
+BT /F1 9.2 Tf 46 615 Td (disponibles ni se incluye la tabla propuesta de excepciones.) Tj ET
+BT /F1 9.2 Tf 46 601 Td (Dia usa numeracion ISO: 1 lunes, 2 martes, ... 7 domingo.) Tj ET
+BT /F1 13 Tf 46 580 Td (2. Responsabilidad de archivos) Tj ET
+BT /F1 9.2 Tf 46 559 Td (horario.routes.js: define rutas protegidas y permisos.) Tj ET
+BT /F1 9.2 Tf 46 545 Td (horario.validator.js: valida ID, dia 1-7, formato de hora y que hora_fin sea posterior a) Tj ET
+BT /F1 9.2 Tf 46 531 Td (hora_inicio.) Tj ET
+BT /F1 9.2 Tf 46 517 Td (horario.controller.js: traduce HTTP y delega errores.) Tj ET
+BT /F1 9.2 Tf 46 503 Td (horario.service.js: verifica que el usuario objetivo exista, este activo y tenga rol) Tj ET
+BT /F1 9.2 Tf 46 489 Td (TECHNICIAN.) Tj ET
+BT /F1 9.2 Tf 46 475 Td (horario.repository.js: consulta horario_tecnico con SQL parametrizado y el pool) Tj ET
+BT /F1 9.2 Tf 46 461 Td (mysql2/promise.) Tj ET
+BT /F1 9.2 Tf 46 447 Td (app.js: monta el modulo bajo /api/horarios.) Tj ET
+BT /F1 9.2 Tf 46 433 Td (sql/horarios-disponibilidad.sql: crea la tabla horario_tecnico relacionada a usuario. No) Tj ET
+BT /F1 9.2 Tf 46 419 Td (modifica las tablas existentes.) Tj ET
+BT /F1 13 Tf 46 398 Td (3. Rutas y permisos confirmados) Tj ET
+BT /F1 9.2 Tf 46 377 Td (POST /api/horarios: administrador \(rol ID 1\) crea para tecnico usando id_usuario_tecnico.) Tj ET
+BT /F1 9.2 Tf 46 363 Td (GET /api/horarios: administrador consulta todos los horarios.) Tj ET
+BT /F1 9.2 Tf 46 349 Td (GET /api/horarios/:id, PUT /api/horarios/:id y DELETE /api/horarios/:id: solo administrador.) Tj ET
+BT /F1 9.2 Tf 46 335 Td (GET /api/horarios/me: tecnico \(rol ID 3\) consulta unicamente su propio horario.) Tj ET
+BT /F1 9.2 Tf 46 321 Td (Cliente \(rol ID 2\) no tiene acceso al modulo hasta que citas pueda calcular disponibilidad) Tj ET
+BT /F1 9.2 Tf 46 307 Td (real.) Tj ET
+BT /F1 8 Tf 46 30 Td (AgendaLetric | Horarios | Pagina 1 de 2) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 2917 >>
+stream
+BT /F1 13 Tf 46 748 Td (4. Preparar base y servidor) Tj ET
+BT /F1 9.2 Tf 46 727 Td (Prerequisito: agendaletric y usuario existen; la tabla rol contiene TECHNICIAN y hay un) Tj ET
+BT /F1 9.2 Tf 46 713 Td (usuario activo con ese rol.) Tj ET
+BT /F1 9.2 Tf 46 699 Td (1. En MySQL Workbench selecciona agendaletric y ejecuta sql/horarios-disponibilidad.sql.) Tj ET
+BT /F1 9.2 Tf 46 685 Td (2. Comprueba con DESCRIBE horario_tecnico; y SHOW CREATE TABLE horario_tecnico;.) Tj ET
+BT /F1 9.2 Tf 46 671 Td (3. Configura .env local y ejecuta npm run dev desde agenda-backend. No compartas tokens o) Tj ET
+BT /F1 9.2 Tf 46 657 Td (credenciales.) Tj ET
+BT /F1 13 Tf 46 636 Td (5. Prueba paso a paso) Tj ET
+BT /F1 9.2 Tf 46 615 Td (1. Inicia sesion como SYSTEM_ADMIN con POST /api/auth/login; copia data.token.) Tj ET
+BT /F1 9.2 Tf 46 601 Td (2. Crea un horario: POST http://localhost:3000/api/horarios, Authorization: Bearer <token>,) Tj ET
+BT /F1 9.2 Tf 46 587 Td (JSON {"id_usuario_tecnico": ID_TECNICO, "dia_semana": 1, "hora_inicio": "08:00", "hora_fin":) Tj ET
+BT /F1 9.2 Tf 46 573 Td ("17:00"}. Espera HTTP 201.) Tj ET
+BT /F1 9.2 Tf 46 559 Td (3. Como administrador prueba GET /api/horarios y GET /api/horarios/<id>; debe aparecer el) Tj ET
+BT /F1 9.2 Tf 46 545 Td (tecnico, dia y rango configurado.) Tj ET
+BT /F1 9.2 Tf 46 531 Td (4. Actualiza con PUT /api/horarios/<id> y JSON) Tj ET
+BT /F1 9.2 Tf 46 517 Td ({"dia_semana":1,"hora_inicio":"09:00","hora_fin":"18:00"}. Verifica la respuesta actualizada.) Tj ET
+BT /F1 9.2 Tf 46 503 Td (5. Inicia sesion con cuenta TECHNICIAN y consulta GET /api/horarios/me. Solo debe listar su) Tj ET
+BT /F1 9.2 Tf 46 489 Td (propio horario.) Tj ET
+BT /F1 9.2 Tf 46 475 Td (6. Prueba GET /api/horarios/<id> como tecnico: debe responder 403. Sin token, GET) Tj ET
+BT /F1 9.2 Tf 46 461 Td (/api/horarios/me debe responder 401.) Tj ET
+BT /F1 9.2 Tf 46 447 Td (7. Como administrador elimina al final con DELETE /api/horarios/<id>; vuelve a consultar ese) Tj ET
+BT /F1 9.2 Tf 46 433 Td (ID y debe responder 404.) Tj ET
+BT /F1 13 Tf 46 412 Td (6. Casos de validacion y limites) Tj ET
+BT /F1 9.2 Tf 46 391 Td (Dia fuera de 1-7, hora invalida o fin no posterior al inicio: HTTP 400. Usuario objetivo que) Tj ET
+BT /F1 9.2 Tf 46 377 Td (no sea tecnico activo: HTTP 404. Horario inexistente: HTTP 404.) Tj ET
+BT /F1 9.2 Tf 46 363 Td (No se impide superponer dos rangos del mismo tecnico/dia ni se generan espacios libres: esa) Tj ET
+BT /F1 9.2 Tf 46 349 Td (regla y la duracion dependen de especificaciones de citas aun no definidas.) Tj ET
+BT /F1 9.2 Tf 46 335 Td (La estructura y permisos fueron probados con validaciones locales; el script SQL y las) Tj ET
+BT /F1 9.2 Tf 46 321 Td (solicitudes HTTP deben verificarse en MySQL local. El proyecto no incluye suite automatizada) Tj ET
+BT /F1 9.2 Tf 46 307 Td (configurada.) Tj ET
+BT /F1 8 Tf 46 30 Td (AgendaLetric | Horarios | Pagina 2 de 2) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000002940 00000 n 
+0000003066 00000 n 
+0000006035 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+6161
+%%EOF

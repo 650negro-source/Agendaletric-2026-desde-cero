@@ -10,7 +10,7 @@ async function findByEmail(correo) {
        id_rol_fk,
        estado
      FROM usuario
-     WHERE correo = ?
+     WHERE LOWER(correo) = LOWER(?)
      AND deleted_at IS NULL`,
     [correo]
   );

@@ -1,0 +1,96 @@
+%PDF-1.4
+%AgendaLetric
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1545 >>
+stream
+BT /F1 20 Tf 48 752 Td (Modulo de Tipo de Averia) Tj ET
+BT /F1 12 Tf 48 720 Td (AgendaLetric - explicacion del codigo y guia de pruebas) Tj ET
+BT /F1 15 Tf 48 682 Td (Proposito) Tj ET
+BT /F1 11 Tf 48 657 Td (El cliente selecciona un tipo de averia y describe brevemente el problema.) Tj ET
+BT /F1 11 Tf 48 638 Td (El catalogo lo administra el administrador; no se borran fisicamente) Tj ET
+BT /F1 11 Tf 48 619 Td (sus opciones para conservar las citas relacionadas.) Tj ET
+BT /F1 15 Tf 48 581 Td (Como funciona) Tj ET
+BT /F1 11 Tf 48 556 Td (1. Admin crea, consulta, edita y activa/desactiva tipos de averia.) Tj ET
+BT /F1 11 Tf 48 537 Td (2. Clientes y tecnicos consultan solo tipos activos; admin ve todos.) Tj ET
+BT /F1 11 Tf 48 518 Td (3. Al reservar, la API exige id_tipo_averia y valida que este activo.) Tj ET
+BT /F1 11 Tf 48 499 Td (4. La cita conserva el ID y una copia del nombre elegido, para que) Tj ET
+BT /F1 11 Tf 48 480 Td (renombrar el catalogo no cambie la etiqueta de citas historicas.) Tj ET
+BT /F1 11 Tf 48 461 Td (5. Las citas anteriores pueden quedar sin tipo; SQL mantiene nullable) Tj ET
+BT /F1 11 Tf 48 442 Td (id_tipo_averia y tipo_averia_nombre para no perder registros previos.) Tj ET
+BT /F1 15 Tf 48 404 Td (Archivos) Tj ET
+BT /F1 11 Tf 48 379 Td (- sql/tipos-averia.sql: crea catalogo y agrega columnas/FK a cita.) Tj ET
+BT /F1 11 Tf 48 360 Td (- src/modules/tipos-averia: rutas, validacion, controller, service, repo.) Tj ET
+BT /F1 11 Tf 48 341 Td (- src/modules/citas: alta y respuestas con tipo historico.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1538 >>
+stream
+BT /F1 18 Tf 48 752 Td (Endpoints, permisos y SQL) Tj ET
+BT /F1 11 Tf 48 701 Td (Todos los endpoints requieren JWT.) Tj ET
+BT /F1 11 Tf 48 682 Td (GET /api/tipos-averia - roles 1, 2, 3; admin ve todos, los demas) Tj ET
+BT /F1 11 Tf 48 663 Td (solo activos.) Tj ET
+BT /F1 11 Tf 48 644 Td (GET /api/tipos-averia/:id - solo admin.) Tj ET
+BT /F1 11 Tf 48 625 Td (POST /api/tipos-averia - admin. JSON: {"nombre":"Bateria"}) Tj ET
+BT /F1 11 Tf 48 606 Td (PUT /api/tipos-averia/:id - admin. JSON: {"nombre":"Sistema electrico"}) Tj ET
+BT /F1 10 Tf 48 587 Td (PATCH /api/tipos-averia/:id/estado - admin. JSON: {"estado":0} o {"estado":1}) Tj ET
+BT /F1 14 Tf 48 549 Td (Actualizar base una sola vez) Tj ET
+BT /F1 11 Tf 48 524 Td (1. Seleccionar agendaletric en MySQL Workbench.) Tj ET
+BT /F1 11 Tf 48 505 Td (2. Ejecutar sql/tipos-averia.sql despues de tener creada cita.) Tj ET
+BT /F1 11 Tf 48 486 Td (3. El script agrega columnas/FK; no volver a ejecutar ALTER TABLE.) Tj ET
+BT /F1 10 Tf 48 467 Td (4. Confirmar con SHOW CREATE TABLE tipo_averia; y SHOW CREATE TABLE cita;) Tj ET
+BT /F1 14 Tf 48 429 Td (Alta de cita \(cliente\)) Tj ET
+BT /F1 11 Tf 48 404 Td (POST /api/citas ahora requiere id_tipo_averia ademas de vehiculo,) Tj ET
+BT /F1 11 Tf 48 385 Td (fecha, hora y descripcion_averia. Ejemplo:) Tj ET
+BT /F1 10 Tf 48 366 Td ({"id_vehiculo":1,"id_tipo_averia":2,) Tj ET
+BT /F1 10 Tf 48 347 Td ( "fecha_programada":"2030-06-12","hora_programada":"10:00",) Tj ET
+BT /F1 10 Tf 48 328 Td ( "descripcion_averia":"El vehiculo no enciende"}) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1582 >>
+stream
+BT /F1 18 Tf 48 752 Td (Pasos de prueba) Tj ET
+BT /F1 11 Tf 48 701 Td (1. Como admin, crea un tipo y confirma HTTP 201.) Tj ET
+BT /F1 11 Tf 48 682 Td (2. Como cliente, lista tipos: solo deben aparecer activos.) Tj ET
+BT /F1 11 Tf 48 663 Td (3. Desactiva uno con PATCH estado 0; verifica que ya no aparezca) Tj ET
+BT /F1 11 Tf 48 644 Td (al cliente y que la API no permita reservar con su ID \(HTTP 400\).) Tj ET
+BT /F1 11 Tf 48 625 Td (4. Crea cita con tipo activo. Respuesta debe incluir id_tipo_averia) Tj ET
+BT /F1 11 Tf 48 606 Td (y tipo_averia_nombre con la etiqueta seleccionada.) Tj ET
+BT /F1 11 Tf 48 587 Td (5. Renombra el tipo en el catalogo; consulta cita previa y comprueba) Tj ET
+BT /F1 11 Tf 48 568 Td (que su tipo_averia_nombre historico no cambia.) Tj ET
+BT /F1 14 Tf 48 530 Td (Casos negativos) Tj ET
+BT /F1 11 Tf 48 505 Td (- ID o nombre vacio/incorrecto: HTTP 400.) Tj ET
+BT /F1 11 Tf 48 486 Td (- Tipo inexistente/inactivo en cita: HTTP 400.) Tj ET
+BT /F1 11 Tf 48 467 Td (- Nombre duplicado: HTTP 409.) Tj ET
+BT /F1 11 Tf 48 448 Td (- Cliente/tecnico intenta administrar: HTTP 403.) Tj ET
+BT /F1 11 Tf 48 429 Td (- Citas antiguas sin categoria conservan NULL; no se asigna una) Tj ET
+BT /F1 11 Tf 48 410 Td (categoria arbitraria ni se hace backfill automatico.) Tj ET
+BT /F1 10 Tf 48 372 Td (Las pruebas SQL en el servidor MySQL y endpoints con datos reales) Tj ET
+BT /F1 10 Tf 48 353 Td (deben ejecutarse localmente; aqui se probaron validaciones, servicios,) Tj ET
+BT /F1 10 Tf 48 334 Td (consulta parametrizada y la asignacion transaccional con mocks.) Tj ET
+endstream
+endobj
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+5437
+%%EOF

@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken");
 const authRepository = require("./auth.repository");
 
 async function login(correo, contrasena) {
-  const user = await authRepository.findByEmail(correo);
+  const normalizedCorreo = correo.trim();
+  const user = await authRepository.findByEmail(normalizedCorreo);
 
   // Caso 1: Usuario no encontrado
   if (!user) {

@@ -1,5 +1,6 @@
 # Dependencias
 node_modules/
+/storage/reportes-tecnicos/
 
 # Variables de entorno
 .env
@@ -14,4 +15,3 @@ Thumbs.db
 
 # Configuración local del editor
 .vscode/
-

@@ -1,0 +1,94 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 2437 >>
+stream
+BT /F1 13 Tf 46 748 Td (AGENDALETRIC | MODULO VEHICULOS) Tj ET
+BT /F1 9.2 Tf 46 727 Td (Guia breve del codigo, SQL y pruebas manuales) Tj ET
+BT /F1 13 Tf 46 706 Td (1. Alcance y relacion) Tj ET
+BT /F1 9.2 Tf 46 685 Td (Vehiculo es un dominio separado conforme al modelo: placa, marca, modelo, anio y color. Cada) Tj ET
+BT /F1 9.2 Tf 46 671 Td (vehiculo pertenece a un cliente \(relacion Cliente 1 a N Vehiculos\). El SQL agrega id_cliente) Tj ET
+BT /F1 9.2 Tf 46 657 Td (como FK.) Tj ET
+BT /F1 9.2 Tf 46 643 Td (No se implementa aun historial de citas porque el modulo y la tabla cita no existen. Tampoco) Tj ET
+BT /F1 9.2 Tf 46 629 Td (se agregan citas, horarios, asignacion de tecnico ni recordatorios.) Tj ET
+BT /F1 13 Tf 46 608 Td (2. Archivos y responsabilidad) Tj ET
+BT /F1 9.2 Tf 46 587 Td (vehiculo.routes.js: endpoints protegidos por JWT y roles.) Tj ET
+BT /F1 9.2 Tf 46 573 Td (vehiculo.validator.js: valida campos, longitudes tecnicas, ID y anio entero positivo.) Tj ET
+BT /F1 9.2 Tf 46 559 Td (vehiculo.controller.js: adapta las solicitudes HTTP y delega errores.) Tj ET
+BT /F1 9.2 Tf 46 545 Td (vehiculo.service.js: decide propietario, valida cliente activo y limita acceso al vehiculo) Tj ET
+BT /F1 9.2 Tf 46 531 Td (propio.) Tj ET
+BT /F1 9.2 Tf 46 517 Td (vehiculo.repository.js: ejecuta consultas SQL parametrizadas con el pool mysql2/promise.) Tj ET
+BT /F1 9.2 Tf 46 503 Td (app.js: monta el dominio bajo /api/vehiculos.) Tj ET
+BT /F1 13 Tf 46 482 Td (3. Endpoints y permisos acordados) Tj ET
+BT /F1 9.2 Tf 46 461 Td (POST /api/vehiculos: cliente CUSTOMER \(ID 2\) crea solo para si mismo; administrador \(ID 1\)) Tj ET
+BT /F1 9.2 Tf 46 447 Td (envia id_cliente para crear para un cliente activo.) Tj ET
+BT /F1 9.2 Tf 46 433 Td (GET /api/vehiculos: el cliente ve sus vehiculos; administrador ve todos.) Tj ET
+BT /F1 9.2 Tf 46 419 Td (GET /api/vehiculos/:id y PUT /api/vehiculos/:id: cliente solo accede a los propios;) Tj ET
+BT /F1 9.2 Tf 46 405 Td (administrador accede a todos.) Tj ET
+BT /F1 9.2 Tf 46 391 Td (Usuario de rol TECHNICIAN no tiene endpoints directos de vehiculos todavia; el acceso) Tj ET
+BT /F1 9.2 Tf 46 377 Td (relacionado con una cita se define en el modulo citas.) Tj ET
+BT /F1 9.2 Tf 46 363 Td (No hay ruta de borrado: el documento no define eliminar vehiculos y se conservan para) Tj ET
+BT /F1 9.2 Tf 46 349 Td (historiales futuros.) Tj ET
+BT /F1 8 Tf 46 30 Td (AgendaLetric | Pagina 1 de 2) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 2433 >>
+stream
+BT /F1 13 Tf 46 748 Td (4. SQL y orden de ejecucion) Tj ET
+BT /F1 9.2 Tf 46 727 Td (Confirma primero que agendaletric tiene rol y usuario y ejecuta la migracion de correo activo) Tj ET
+BT /F1 9.2 Tf 46 713 Td (si aun no la ejecutaste.) Tj ET
+BT /F1 9.2 Tf 46 699 Td (Ejecuta sql/cliente.sql antes de sql/vehiculo.sql. Este ultimo crea la FK hacia cliente y) Tj ET
+BT /F1 9.2 Tf 46 685 Td (requiere que la tabla cliente exista.) Tj ET
+BT /F1 9.2 Tf 46 671 Td (Comprueba con DESCRIBE vehiculo; y SHOW CREATE TABLE vehiculo;.) Tj ET
+BT /F1 9.2 Tf 46 657 Td (Las longitudes de placa, marca, modelo y color son limites tecnicos del esquema, no reglas de) Tj ET
+BT /F1 9.2 Tf 46 643 Td (negocio del documento. La placa no es UNIQUE porque la especificacion no lo establece.) Tj ET
+BT /F1 13 Tf 46 622 Td (5. Prueba paso a paso) Tj ET
+BT /F1 9.2 Tf 46 601 Td (1. Ejecuta npm run dev y confirma conexion MySQL; registra un cliente via POST /api/clientes) Tj ET
+BT /F1 9.2 Tf 46 587 Td (e inicia sesion en /api/auth/login.) Tj ET
+BT /F1 9.2 Tf 46 573 Td (2. Guarda el JWT y envia Authorization: Bearer <token>. Crea POST /api/vehiculos con placa,) Tj ET
+BT /F1 9.2 Tf 46 559 Td (marca, modelo, anio y color; el cliente queda asociado por su usuario autenticado.) Tj ET
+BT /F1 9.2 Tf 46 545 Td (3. Verifica GET /api/vehiculos y GET /api/vehiculos/<id>; deben listar solo vehiculos del) Tj ET
+BT /F1 9.2 Tf 46 531 Td (cliente.) Tj ET
+BT /F1 9.2 Tf 46 517 Td (4. Actualiza un campo con PUT /api/vehiculos/<id> y verifica la respuesta.) Tj ET
+BT /F1 9.2 Tf 46 503 Td (5. Intenta consultar un ID perteneciente a otro cliente: el servicio responde 404 y no revela) Tj ET
+BT /F1 9.2 Tf 46 489 Td (el recurso. Campos invalidos responden 400; una ruta sin token, 401.) Tj ET
+BT /F1 9.2 Tf 46 475 Td (6. Con SYSTEM_ADMIN \(ID 1\), prueba POST con id_cliente activo y GET /api/vehiculos para) Tj ET
+BT /F1 9.2 Tf 46 461 Td (comprobar acceso administrativo. Rol TECHNICIAN debe recibir 403 en estas rutas.) Tj ET
+BT /F1 13 Tf 46 440 Td (Siguiente dependencia) Tj ET
+BT /F1 9.2 Tf 46 419 Td (Citas podra relacionar cliente, vehiculo y tecnico; antes de asignar horas disponibles, el) Tj ET
+BT /F1 9.2 Tf 46 405 Td (documento tambien menciona horarios, pero no especifica aun su esquema/reglas. La validacion) Tj ET
+BT /F1 9.2 Tf 46 391 Td (final requiere MySQL y pruebas HTTP en tu entorno.) Tj ET
+BT /F1 8 Tf 46 30 Td (AgendaLetric | Pagina 2 de 2) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000002713 00000 n 
+0000002839 00000 n 
+0000005324 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+5450
+%%EOF

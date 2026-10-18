@@ -14,7 +14,10 @@ Este proyecto corresponde a la capa de servidor de AgendaLetric. Su propósito e
 - Validación de entradas en capas de rutas y servicios
 - Manejo centralizado de errores
 - Conexión a base de datos MySQL
-- Estructura modular por dominio (`auth`, `users`)
+- Reportes técnicos con evidencias privadas, publicación y PDF descargable
+- Catálogo de tipos de servicio asociado a nuevas citas
+- Simulación y registro de notificaciones por correo (no se envían correos reales)
+- Estructura modular por dominio
 - Servidor listo para desarrollo con nodemon
 
 ## Tecnologías
@@ -26,6 +29,8 @@ Este proyecto corresponde a la capa de servidor de AgendaLetric. Su propósito e
 - JWT (jsonwebtoken)
 - bcrypt
 - dotenv
+- Multer (carga multipart de evidencias)
+- PDFKit (generación de reportes PDF)
 - nodemon
 
 ## Requisitos previos
@@ -144,7 +149,54 @@ El módulo de autenticación está disponible en `src/modules/auth` y contempla 
 
 - `POST /api/auth/login`
 
-> La ruta se configura en el módulo de autenticación y puede montarse en la aplicación principal según la estructura de enrutamiento definitiva del proyecto.
+### Reportes técnicos
+
+Las rutas están protegidas con JWT. Administradores y técnicos asignados pueden consultar y editar el reporte, cargar/descargar evidencias y publicarlo. El cliente propietario solo puede consultar y descargar el PDF cuando el reporte está publicado.
+
+- `GET /api/reportes-tecnicos/:idCita` - Consultar reporte
+- `PUT /api/reportes-tecnicos/:idCita` - Actualizar diagnóstico, procedimiento y observaciones
+- `POST /api/reportes-tecnicos/:idCita/archivos` - Cargar un archivo JPG o MP4 (máximo 10 MB)
+- `GET /api/reportes-tecnicos/:idCita/archivos/:idArchivo` - Descargar evidencia (administrador o técnico asignado)
+- `POST /api/reportes-tecnicos/:idCita/enviar` - Publicar y registrar un correo simulado al cliente
+- `POST /api/reportes-tecnicos/:idCita/solicitar-correccion` - Solicitar corrección (solo administrador; correo simulado al técnico)
+- `GET /api/reportes-tecnicos/:idCita/pdf` - Descargar el PDF generado bajo demanda
+
+Las evidencias se guardan en `storage/reportes-tecnicos` y no se sirven como archivos estáticos. Después de ejecutar `sql/reporte-tecnico.sql`, ejecuta una vez `sql/reporte-tecnico-flujo-completo.sql` en Workbench para agregar estados de publicación, evidencias y registro de envíos. Los reportes ya existentes quedan como borrador hasta que un usuario autorizado los publique.
+
+### Tipos de servicio y citas
+
+El catálogo se consulta mediante `GET /api/tipos-servicio`. Clientes y técnicos reciben solo servicios activos; el administrador recibe también los inactivos y puede gestionarlos:
+
+- `GET /api/tipos-servicio/:id` - Consultar un servicio (administrador)
+- `POST /api/tipos-servicio` - Crear servicio (administrador)
+- `PUT /api/tipos-servicio/:id` - Actualizar nombre, descripción y, opcionalmente, si pide detalle (administrador)
+- `PATCH /api/tipos-servicio/:id/estado` - Activar/desactivar servicio (administrador)
+
+Para conectar el módulo a citas, selecciona un servicio activo al crear cada cita. El tipo de avería y la descripción del problema siguen siendo campos separados y obligatorios. Las citas históricas mantienen sus datos y reciben `NULL` en los campos nuevos; el nombre seleccionado se guarda como copia en la cita.
+
+La opción `Otro servicio` del catálogo requiere `detalle_servicio`. Para crear una cita, incluye `id_tipo_servicio` y los campos que ya enviaba el cliente:
+
+```json
+{
+  "id_vehiculo": 1,
+  "id_tipo_averia": 1,
+  "id_tipo_servicio": 11,
+  "detalle_servicio": "Instalar una cámara de reversa",
+  "fecha_programada": "2026-11-20",
+  "hora_programada": "10:00",
+  "descripcion_averia": "Quiero instalar una cámara en el vehículo"
+}
+```
+
+El ID del ejemplo es ilustrativo: obtén el ID real de `GET /api/tipos-servicio` y usa el ID de `Otro servicio` solo cuando esa sea la opción elegida. En los demás servicios, omite `detalle_servicio`.
+
+Ejecuta una sola vez `sql/tipos-servicio.sql` en Workbench, después de crear las tablas `cita` y `tipo_averia`. La migración agrega el catálogo con opciones iniciales y agrega a `cita` las columnas para el servicio y su detalle; no elimina ni modifica citas anteriores.
+
+### Tipos de avería
+
+El tipo de avería clasifica el problema reportado y se selecciona por separado del tipo de servicio. Para cargar las opciones iniciales en una tabla `tipo_averia` ya creada, ejecuta `sql/datos-iniciales-tipos-averia.sql` en Workbench. El script agrega solo los nombres que todavía no existan, por lo que no es necesario volver a ejecutar `sql/tipos-averia.sql`.
+
+Consulta las opciones disponibles con `GET /api/tipos-averia` y usa el `id_tipo_averia` de un elemento activo al crear una cita.
 
 ## Seguridad
 
