@@ -1,0 +1,101 @@
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(57, 169, 0, 0.11), transparent 33%),
+    var(--color-background);
+}
+
+.login-card {
+  width: min(100%, 420px);
+  padding: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.login-brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 24px;
+  place-items: center;
+  border-radius: 14px;
+  color: white;
+  background: var(--color-primary);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--color-primary-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.login-card h1 {
+  margin: 0 0 10px;
+  color: var(--color-text);
+  font-size: clamp(1.8rem, 5vw, 2.2rem);
+  letter-spacing: -0.04em;
+}
+
+.login-description {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.login-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.login-form label,
+.user-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.login-form input,
+.user-form input,
+.user-form select,
+.users-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  outline: none;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.login-form input:focus,
+.user-form input:focus,
+.user-form select:focus,
+.users-search input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.14);
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 28px 22px;
+  }
+}

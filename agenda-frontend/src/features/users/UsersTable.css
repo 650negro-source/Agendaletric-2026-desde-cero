@@ -1,0 +1,118 @@
+.users-table-scroll {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.users-table th,
+.users-table td {
+  padding: 15px 24px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.users-table th {
+  color: var(--color-muted);
+  background: #f8faf7;
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.user-name,
+.user-email {
+  display: block;
+}
+
+.user-name {
+  color: var(--color-text);
+  font-size: 0.92rem;
+}
+
+.user-email {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.role-label {
+  color: var(--color-text);
+  font-size: 0.87rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-pill--active {
+  color: var(--color-success-dark);
+  background: var(--color-success-background);
+}
+
+.status-pill--inactive {
+  color: var(--color-muted);
+  background: #f0f1ef;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.text-button {
+  padding: 4px 0;
+  border: 0;
+  color: var(--color-primary-dark);
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  text-decoration: underline;
+}
+
+.text-button:disabled {
+  color: var(--color-muted);
+  cursor: wait;
+}
+
+.text-button--danger {
+  color: var(--color-danger-dark);
+}
+
+@media (max-width: 760px) {
+  .users-table th,
+  .users-table td {
+    padding: 13px 14px;
+  }
+
+  .users-table {
+    min-width: 720px;
+  }
+}
