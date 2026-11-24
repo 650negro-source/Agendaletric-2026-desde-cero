@@ -109,6 +109,28 @@ async function findAvailableTechnicians(
       if (lockedTechnicians.length === 0) continue;
     }
 
+    const [scheduled] = await connection.execute(
+      `SELECT h.id_horario
+       FROM horario_tecnico h
+       WHERE h.id_usuario_tecnico = ?
+         AND h.dia_semana = WEEKDAY(?) + 1
+         AND CAST(? AS CHAR) >= CAST(h.hora_inicio AS CHAR)
+         AND TIMESTAMPADD(
+               MINUTE, ?, TIMESTAMP(?, ?)
+             ) <= TIMESTAMP(?, h.hora_fin)
+       LIMIT 1${conflictLock}`,
+      [
+        candidate.id_usuario,
+        fecha,
+        hora,
+        duracionMinutos,
+        fecha,
+        hora,
+        fecha,
+      ]
+    );
+    if (scheduled.length === 0) continue;
+
     const [conflicts] = await connection.execute(
       `SELECT 1
        FROM cita c

@@ -1,9 +1,15 @@
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '')
 
-export async function apiRequest(path, { token, method = 'GET', body } = {}) {
+export async function apiRequest(path, {
+  token,
+  method = 'GET',
+  body,
+  responseType = 'json',
+} = {}) {
   const headers = { Accept: 'application/json' }
+  const isFormData = body instanceof FormData
 
-  if (body !== undefined) {
+  if (body !== undefined && !isFormData) {
     headers['Content-Type'] = 'application/json'
   }
 
@@ -17,7 +23,7 @@ export async function apiRequest(path, { token, method = 'GET', body } = {}) {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
     })
   } catch (error) {
     const detail = error instanceof Error ? ` (${error.message})` : ''
@@ -45,6 +51,10 @@ export async function apiRequest(path, { token, method = 'GET', body } = {}) {
     const error = new Error(toSpanishError(payload?.message, response.status))
     error.status = response.status
     throw error
+  }
+
+  if (responseType === 'blob') {
+    return response.blob()
   }
 
   return payload
@@ -108,6 +118,9 @@ function toSpanishError(message, status) {
     'Invalid role ID': 'Selecciona un rol válido.',
     'Status must be 0 or 1': 'El estado seleccionado no es válido.',
     'Service duration is not configured': 'Este servicio aún no se puede reservar porque administración debe configurar su duración.',
+    'Published reports can only be edited after an administrator requests a correction': 'El reporte publicado está bloqueado. Administración debe solicitar una corrección para habilitar cambios.',
+    'Only draft or corrected reports can be published': 'Solo se pueden publicar reportes en borrador o que hayan sido devueltos para corrección.',
+    'Only published reports can be sent for correction': 'Solo se pueden solicitar correcciones de un reporte publicado.',
     'Service type not found or inactive': 'El servicio seleccionado no está disponible.',
     'No technician is available at the requested date and time': 'Ese horario acaba de ocuparse o no tiene un técnico disponible. Elige otro.',
     'The client already has an active appointment': 'Ya tienes una cita activa. Cancélala o reprográmala antes de solicitar otra.',
@@ -117,6 +130,13 @@ function toSpanishError(message, status) {
     'The service type cannot be changed while rescheduling': 'Al reprogramar no se puede cambiar el servicio.',
     'Appointment can no longer be rescheduled': 'Esta cita ya no se puede reprogramar.',
     'Details are required for the selected service type': 'Especifica los detalles requeridos para este servicio.',
+    'Technician profile not found': 'Aún no tienes un perfil técnico; solicita a administración que lo cree.',
+    'Active technician user not found': 'La cuenta técnica no existe o está inactiva.',
+    'Technician user not found': 'No se encontró la cuenta técnica.',
+    'A technician profile already exists for this user': 'Ese usuario ya tiene un perfil técnico.',
+    'Technician schedule intervals cannot overlap': 'Los turnos de un mismo día no pueden superponerse.',
+    'Schedule change would invalidate active appointments': 'No se puede cambiar ese turno porque dejaría citas activas fuera del horario.',
+    'End time must be later than start time': 'La hora de finalización debe ser posterior a la de inicio.',
     'A valid date and service type are required': 'Selecciona una fecha y un servicio válidos.',
   }
 

@@ -15,6 +15,7 @@ El frontend ya incluye:
 - Perfil propio para clientes y directorio administrativo de clientes con consulta, edición, estado y baja lógica.
 - Gestión de vehículos propia para clientes y administrativa, con validación de placa, tipo, energía y estado.
 - Módulo de citas por rol: reservas y reprogramación para clientes, gestión de estados para técnicos y administración, y configuración de duración por servicio.
+- Reportes técnicos por rol: edición y evidencias antes de publicar, solicitud administrativa de corrección y consulta del cliente mediante reporte publicado y PDF.
 - Controles de permisos por rol según el backend (`SYSTEM_ADMIN`, `TECHNICIAN`, `CUSTOMER`).
 - Gestión de usuarios, clientes y configuración de servicios visible solo para administración.
 - Manejo de estados de carga, vacío, error y mensajes de éxito.
@@ -114,6 +115,32 @@ Clientes consultan, cancelan y reprograman sus citas; técnicos ven sus asignaci
 | Validar/iniciar/finalizar | `PATCH /api/citas/:id/validar`, `/iniciar`, `/finalizar` | Técnico asignado o `SYSTEM_ADMIN` |
 | Configurar duración de servicio | `PUT /api/tipos-servicio/:id` | `SYSTEM_ADMIN` |
 
+## Técnicos y horarios
+
+Administración crea primero una cuenta con rol Técnico desde Usuarios; luego registra el perfil, especialidad y teléfono, y configura sus horarios. El técnico puede consultar su perfil y turnos, pero no editarlos. Se permiten turnos separados en un mismo día, siempre que no se superpongan. El backend bloquea cambios que dejarían citas activas fuera de los horarios restantes.
+
+| Acción | Ruta | Permiso |
+| --- | --- | --- |
+| Listar/crear perfiles técnicos | `GET/POST /api/tecnicos` | `SYSTEM_ADMIN` |
+| Editar perfil técnico | `PUT /api/tecnicos/:idUsuario` | `SYSTEM_ADMIN` |
+| Consultar mi perfil | `GET /api/tecnicos/me` | `TECHNICIAN` |
+| Listar/crear horarios | `GET/POST /api/horarios` | `SYSTEM_ADMIN` |
+| Editar/eliminar horario | `PUT/DELETE /api/horarios/:id` | `SYSTEM_ADMIN` |
+| Consultar mis horarios | `GET /api/horarios/me` | `TECHNICIAN` |
+
+## Reportes técnicos
+
+Al finalizar una cita atendida, el backend crea el reporte. Administración y el técnico asignado pueden completar el diagnóstico, el procedimiento y las observaciones, además de adjuntar evidencias JPG/JPEG o MP4 de hasta 10 MB por archivo. El reporte publicado queda bloqueado; solo administración puede solicitar una corrección y, tras esa solicitud, vuelve a habilitarse su edición y publicación. El correo de publicación/corrección es simulado hasta configurar un proveedor real.
+
+El cliente solo puede consultar reportes publicados y descargar su PDF. Los archivos de evidencia se mantienen privados para administración y el técnico asignado; el PDF del cliente muestra sus nombres.
+
+| Acción | Ruta | Permiso |
+| --- | --- | --- |
+| Consultar reporte/PDF | `GET /api/reportes-tecnicos/:idCita`, `GET /api/reportes-tecnicos/:idCita/pdf` | Administración y técnico asignado; cliente propietario solo si está publicado |
+| Editar reporte o adjuntar evidencia | `PUT /api/reportes-tecnicos/:idCita`, `POST /api/reportes-tecnicos/:idCita/archivos` | Administración y técnico asignado; solo borrador o corrección solicitada |
+| Publicar | `POST /api/reportes-tecnicos/:idCita/enviar` | Administración o técnico asignado; borrador o corrección solicitada |
+| Solicitar corrección | `POST /api/reportes-tecnicos/:idCita/solicitar-correccion` | Solo administración; reporte publicado |
+
 Acceso a la **gestión de usuarios** (no incluye las operaciones del perfil de cliente descritas en la sección siguiente):
 
 | Rol | Consultar usuarios | Cambiar estado | Crear/editar/eliminar usuarios |
@@ -132,9 +159,11 @@ src/
     auth/                 Inicio de sesión y registro de clientes
     clientes/             Perfil propio y gestión administrativa de clientes
     citas/                Reservas, agenda por rol y duración de servicios
+    reportes/             Gestión y consulta de reportes técnicos por rol
+    tecnicos/             Perfiles técnicos y horarios por rol
     vehiculos/            Vehículos propios y gestión administrativa
     users/                Pantalla, tabla, formulario, detalle y confirmación
-  services/               Cliente HTTP, autenticación, usuarios, clientes y vehículos
+  services/               Cliente HTTP, autenticación, usuarios, clientes, citas, reportes, técnicos y vehículos
   shared/                 Roles y políticas de validación
   App.jsx                 Sesión, restauración del perfil y estructura principal
   main.jsx                Montaje de React y estilos globales
@@ -171,9 +200,11 @@ El frontend oculta acciones que el rol no puede ejecutar, pero la autorización 
 13. Como administración, configura la duración de cada servicio de 1 a 6 horas; confirma que los servicios sin duración no aparezcan como reservables.
 14. Como cliente, solicita una cita, consulta los horarios disponibles, verifica la asignación automática y prueba cancelación/reprogramación dentro y fuera de las ventanas de 12/24 horas. Intenta solicitar una segunda cita activa.
 15. Como técnico, valida e inicia una cita asignada, finalízala con diagnóstico y procedimiento, y verifica que el reporte técnico se genere. Confirma que no pueda gestionar citas de otro técnico.
-16. En Postman prueba también los códigos 400 (campos y formatos inválidos), 401 (sin token o token inválido), 403 (rol sin permiso), 404 (registro inexistente), 409 (conflicto de horario, duración pendiente o estado) y 429 (límite de login).
-17. Comprueba el cambio de contraseña con contraseña actual incorrecta, confirmación distinta y contraseña válida. Verifica que login compare la contraseña exactamente, incluidos espacios.
-18. En DevTools → Network comprueba `POST /api/auth/login`, `GET /api/users/me` al cargar y las solicitudes protegidas con `Authorization: Bearer <token>`. No copies el token en capturas.
-19. Verifica la interfaz a 320 px y escritorio. Usa una base local y cuentas de prueba; nunca pruebes `DELETE` con datos reales.
+16. Como administración, registra perfiles técnicos y varios turnos por día; verifica que no se acepten turnos superpuestos y que editar/eliminar un turno no deje citas activas fuera del horario.
+17. Como técnico, consulta su perfil y turnos; confirma que no pueda listar ni modificar perfiles u horarios de otros técnicos.
+18. En Postman prueba también los códigos 400 (campos y formatos inválidos), 401 (sin token o token inválido), 403 (rol sin permiso), 404 (registro inexistente), 409 (conflictos de horario, citas activas o estado) y 429 (límite de login).
+19. Comprueba el cambio de contraseña con contraseña actual incorrecta, confirmación distinta y contraseña válida. Verifica que login compare la contraseña exactamente, incluidos espacios.
+20. En DevTools → Network comprueba `POST /api/auth/login`, `GET /api/users/me` al cargar y las solicitudes protegidas con `Authorization: Bearer <token>`. No copies el token en capturas.
+21. Verifica la interfaz a 320 px y escritorio. Usa una base local y cuentas de prueba; nunca pruebes `DELETE` con datos reales.
 
-Los scripts disponibles para validar el frontend son `npm run lint` y `npm run build`. En el backend ejecuta `npm test` para las pruebas de políticas de contraseña, clientes y vehículos.
+Los scripts disponibles para validar el frontend son `npm run lint` y `npm run build`. En el backend ejecuta `npm test` para las pruebas de políticas de contraseña, clientes, horarios, servicios y vehículos.

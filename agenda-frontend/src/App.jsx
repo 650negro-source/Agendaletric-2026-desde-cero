@@ -5,9 +5,16 @@ import ClienteProfilePage from './features/clientes/ClienteProfilePage.jsx'
 import ClientesPage from './features/clientes/ClientesPage.jsx'
 import VehiculosPage from './features/vehiculos/VehiculosPage.jsx'
 import CitasPage from './features/citas/CitasPage.jsx'
+import TecnicosPage from './features/tecnicos/TecnicosPage.jsx'
+import ReportesPage from './features/reportes/ReportesPage.jsx'
 import { clearSession, getMyProfile, readSession, saveSession, signIn } from './services/authService.js'
 import UsersPage from './features/users/UsersPage.jsx'
-import { ADMIN_ROLE_ID, CUSTOMER_ROLE_ID, getRoleLabel } from './shared/userRoles.js'
+import {
+  ADMIN_ROLE_ID,
+  CUSTOMER_ROLE_ID,
+  TECHNICIAN_ROLE_ID,
+  getRoleLabel,
+} from './shared/userRoles.js'
 import './App.css'
 
 function App() {
@@ -21,6 +28,7 @@ function App() {
   const [passwordMessage, setPasswordMessage] = useState('')
   const [adminSection, setAdminSection] = useState('users')
   const [customerSection, setCustomerSection] = useState('profile')
+  const [technicianSection, setTechnicianSection] = useState('appointments')
 
   useEffect(() => {
     const token = session?.token
@@ -215,8 +223,28 @@ function App() {
             >
               Citas
             </button>
+            <button
+              className={adminSection === 'technicians' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'technicians' ? 'page' : undefined}
+              onClick={() => setAdminSection('technicians')}
+            >
+              Técnicos y horarios
+            </button>
+            <button
+              className={adminSection === 'reports' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'reports' ? 'page' : undefined}
+              onClick={() => setAdminSection('reports')}
+            >
+              Reportes técnicos
+            </button>
           </nav>
-          {adminSection === 'appointments' ? (
+          {adminSection === 'reports' ? (
+            <ReportesPage session={session} />
+          ) : adminSection === 'technicians' ? (
+            <TecnicosPage session={session} />
+          ) : adminSection === 'appointments' ? (
             <CitasPage session={session} />
           ) : adminSection === 'vehicles' ? (
             <VehiculosPage session={session} />
@@ -253,8 +281,18 @@ function App() {
             >
               Mis citas
             </button>
+            <button
+              className={customerSection === 'reports' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={customerSection === 'reports' ? 'page' : undefined}
+              onClick={() => setCustomerSection('reports')}
+            >
+              Mis reportes
+            </button>
           </nav>
-          {customerSection === 'appointments' ? (
+          {customerSection === 'reports' ? (
+            <ReportesPage session={session} />
+          ) : customerSection === 'appointments' ? (
             <CitasPage session={session} />
           ) : customerSection === 'vehicles' ? (
             <VehiculosPage session={session} />
@@ -265,8 +303,50 @@ function App() {
             />
           )}
         </>
+      ) : roleId === TECHNICIAN_ROLE_ID ? (
+        <>
+          <nav className="app-navigation" aria-label="Módulos de técnico">
+            <button
+              className={technicianSection === 'appointments' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={technicianSection === 'appointments' ? 'page' : undefined}
+              onClick={() => setTechnicianSection('appointments')}
+            >
+              Mis citas
+            </button>
+            <button
+              className={technicianSection === 'profile' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={technicianSection === 'profile' ? 'page' : undefined}
+              onClick={() => setTechnicianSection('profile')}
+            >
+              Mi perfil y horario
+            </button>
+            <button
+              className={technicianSection === 'reports' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={technicianSection === 'reports' ? 'page' : undefined}
+              onClick={() => setTechnicianSection('reports')}
+            >
+              Reportes técnicos
+            </button>
+          </nav>
+          {technicianSection === 'reports' ? (
+            <ReportesPage session={session} />
+          ) : technicianSection === 'profile' ? (
+            <TecnicosPage session={session} />
+          ) : (
+            <CitasPage session={session} />
+          )}
+        </>
       ) : (
-        <CitasPage session={session} />
+        <main className="users-page">
+          <section className="notice-card">
+            <p className="eyebrow">{roleLabel}</p>
+            <h1>Hola, {session.user.nombre}</h1>
+            <p>Tu cuenta está activa. Los módulos correspondientes a tu rol se habilitarán en las siguientes etapas.</p>
+          </section>
+        </main>
       )}
       {isChangingPassword && (
         <PasswordChangeForm

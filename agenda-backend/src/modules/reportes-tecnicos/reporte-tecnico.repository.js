@@ -1,4 +1,9 @@
 const pool = require("../../config/database");
+const {
+  assertCanEdit,
+  assertCanPublish,
+  assertCanRequestCorrection,
+} = require("./reporte-tecnico.rules");
 
 function createError(message, status) {
   const error = new Error(message);
@@ -32,19 +37,46 @@ async function findByCitaId(idCita) {
 }
 
 async function updateByCitaId(idCita, reporte) {
-  await pool.execute(
-    `UPDATE reporte_tecnico
-     SET diagnostico = ?, procedimiento_realizado = ?, observaciones = ?
-     WHERE id_cita = ?`,
-    [
-      reporte.diagnostico,
-      reporte.procedimiento_realizado,
-      reporte.observaciones,
-      idCita,
-    ]
-  );
+  const connection = await pool.getConnection();
+  let committed = false;
 
-  return findByCitaId(idCita);
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.execute(
+      `SELECT estado_publicacion
+       FROM reporte_tecnico
+       WHERE id_cita = ?
+       FOR UPDATE`,
+      [idCita]
+    );
+    if (!rows[0]) {
+      throw createError("Technical report not found", 404);
+    }
+
+    assertCanEdit(rows[0].estado_publicacion);
+    await connection.execute(
+      `UPDATE reporte_tecnico
+       SET diagnostico = ?, procedimiento_realizado = ?, observaciones = ?
+       WHERE id_cita = ?`,
+      [
+        reporte.diagnostico,
+        reporte.procedimiento_realizado,
+        reporte.observaciones,
+        idCita,
+      ]
+    );
+    await connection.commit();
+    committed = true;
+
+    return findByCitaId(idCita);
+  } catch (error) {
+    if (!committed) {
+      await connection.rollback();
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 async function findArchivosByReporteId(idReporte) {
@@ -60,27 +92,53 @@ async function findArchivosByReporteId(idReporte) {
 }
 
 async function createArchivo(idReporte, archivo) {
-  const [result] = await pool.execute(
-    `INSERT INTO reporte_tecnico_archivo
-       (id_reporte, nombre_original, nombre_archivo, tipo_mime, tamano_bytes)
-     VALUES (?, ?, ?, ?, ?)`,
-    [
-      idReporte,
-      archivo.nombre_original,
-      archivo.nombre_archivo,
-      archivo.tipo_mime,
-      archivo.tamano_bytes,
-    ]
-  );
+  const connection = await pool.getConnection();
+  let committed = false;
 
-  const [rows] = await pool.execute(
-    `SELECT id_archivo, nombre_original, tipo_mime, tamano_bytes, fecha_subida
-     FROM reporte_tecnico_archivo
-     WHERE id_archivo = ?`,
-    [result.insertId]
-  );
+  try {
+    await connection.beginTransaction();
+    const [reportRows] = await connection.execute(
+      `SELECT estado_publicacion
+       FROM reporte_tecnico
+       WHERE id_reporte = ?
+       FOR UPDATE`,
+      [idReporte]
+    );
+    if (!reportRows[0]) {
+      throw createError("Technical report not found", 404);
+    }
 
-  return rows[0];
+    assertCanEdit(reportRows[0].estado_publicacion);
+    const [result] = await connection.execute(
+      `INSERT INTO reporte_tecnico_archivo
+         (id_reporte, nombre_original, nombre_archivo, tipo_mime, tamano_bytes)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        idReporte,
+        archivo.nombre_original,
+        archivo.nombre_archivo,
+        archivo.tipo_mime,
+        archivo.tamano_bytes,
+      ]
+    );
+    const [rows] = await connection.execute(
+      `SELECT id_archivo, nombre_original, tipo_mime, tamano_bytes, fecha_subida
+       FROM reporte_tecnico_archivo
+       WHERE id_archivo = ?`,
+      [result.insertId]
+    );
+    await connection.commit();
+    committed = true;
+
+    return rows[0];
+  } catch (error) {
+    if (!committed) {
+      await connection.rollback();
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 async function findArchivoById(idReporte, idArchivo) {
@@ -103,7 +161,8 @@ async function publishByCitaId(idCita, idUsuarioActor) {
     await connection.beginTransaction();
 
     const [rows] = await connection.execute(
-      `SELECT r.id_reporte, cliente.id_usuario AS id_usuario_destino,
+      `SELECT r.id_reporte, r.estado_publicacion,
+              cliente.id_usuario AS id_usuario_destino,
               u_cliente.correo AS correo_destino
        FROM reporte_tecnico r
        INNER JOIN cita c ON c.id_cita = r.id_cita
@@ -118,6 +177,7 @@ async function publishByCitaId(idCita, idUsuarioActor) {
       throw createError("Technical report not found", 404);
     }
 
+    assertCanPublish(rows[0].estado_publicacion);
     await connection.execute(
       `UPDATE reporte_tecnico
        SET estado_publicacion = 'PUBLICADO',
@@ -178,7 +238,8 @@ async function requestCorrectionByCitaId(
     await connection.beginTransaction();
 
     const [rows] = await connection.execute(
-      `SELECT r.id_reporte, c.id_usuario_tecnico AS id_usuario_destino,
+      `SELECT r.id_reporte, r.estado_publicacion,
+              c.id_usuario_tecnico AS id_usuario_destino,
               u_tecnico.correo AS correo_destino
        FROM reporte_tecnico r
        INNER JOIN cita c ON c.id_cita = r.id_cita
@@ -193,6 +254,7 @@ async function requestCorrectionByCitaId(
       throw createError("Technical report not found", 404);
     }
 
+    assertCanRequestCorrection(rows[0].estado_publicacion);
     await connection.execute(
       `UPDATE reporte_tecnico
        SET estado_publicacion = 'REQUIERE_CORRECCION',

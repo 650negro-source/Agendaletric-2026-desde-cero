@@ -201,23 +201,37 @@ WHERE UPPER(TRIM(placa)) NOT REGEXP '^[A-Z]{3}[0-9]{3}$';
 
 Después ejecuta una sola vez `sql/vehiculo-modulo.sql`. La migración conserva vehículos existentes y les asigna estado activo; tipo y energía quedan pendientes de completar al editar cada registro. La migración normaliza las placas y agrega el índice único, por lo que fallará explícitamente si aún existen placas duplicadas.
 
+### Técnicos y horarios
+
+Las cuentas de técnico se crean primero desde la gestión de usuarios. Administración puede crear y editar el perfil técnico (especialidad y teléfono) y administrar sus turnos; el técnico solo puede consultar su propio perfil y horario.
+
+- `GET /api/tecnicos` - Listar perfiles (administrador)
+- `POST /api/tecnicos` - Crear perfil para una cuenta con rol `TECHNICIAN` (administrador)
+- `GET/PUT /api/tecnicos/:idUsuario` - Consultar o editar perfil (administrador)
+- `GET /api/tecnicos/me` - Consultar perfil propio (técnico)
+- `GET/POST /api/horarios` - Listar todos o crear turnos (administrador)
+- `GET/PUT/DELETE /api/horarios/:id` - Consultar, editar o eliminar turno (administrador)
+- `GET /api/horarios/me` - Consultar turnos propios (técnico)
+
+Los días usan numeración ISO (1=lunes, 7=domingo). Se permiten varios turnos por día, pero no se pueden superponer. Al editar o eliminar un turno, el backend impide dejar una cita activa fuera de los horarios que aún la cubren; las citas no se mueven automáticamente. La asignación de citas vuelve a validar el horario bajo bloqueo transaccional para evitar reservas con turnos que se estén modificando.
+
 ### Compatibilidad de inicio de sesión
 
 La autenticación usa JWT y las rutas protegidas consultan el estado actual de la cuenta en MySQL.
 
 ### Reportes técnicos
 
-Las rutas están protegidas con JWT. Administradores y técnicos asignados pueden consultar y editar el reporte, cargar/descargar evidencias y publicarlo. El cliente propietario solo puede consultar y descargar el PDF cuando el reporte está publicado.
+Las rutas están protegidas con JWT. Administradores y técnicos asignados pueden consultar y editar el reporte, cargar/descargar evidencias y publicarlo. Un reporte publicado queda bloqueado para edición y nuevas evidencias; solo administración puede solicitar corrección, tras lo cual vuelve a habilitarse su edición. El cliente propietario solo puede consultar reportes publicados y descargar el PDF; los archivos de evidencia se mantienen privados para administración y el técnico asignado.
 
 - `GET /api/reportes-tecnicos/:idCita` - Consultar reporte
-- `PUT /api/reportes-tecnicos/:idCita` - Actualizar diagnóstico, procedimiento y observaciones
-- `POST /api/reportes-tecnicos/:idCita/archivos` - Cargar un archivo JPG o MP4 (máximo 10 MB)
+- `PUT /api/reportes-tecnicos/:idCita` - Actualizar diagnóstico, procedimiento y observaciones (borrador o corrección solicitada)
+- `POST /api/reportes-tecnicos/:idCita/archivos` - Cargar un archivo JPG o MP4 (máximo 10 MB por archivo; bloqueado tras publicar)
 - `GET /api/reportes-tecnicos/:idCita/archivos/:idArchivo` - Descargar evidencia (administrador o técnico asignado)
 - `POST /api/reportes-tecnicos/:idCita/enviar` - Publicar y registrar un correo simulado al cliente
 - `POST /api/reportes-tecnicos/:idCita/solicitar-correccion` - Solicitar corrección (solo administrador; correo simulado al técnico)
 - `GET /api/reportes-tecnicos/:idCita/pdf` - Descargar el PDF generado bajo demanda
 
-Las evidencias se guardan en `storage/reportes-tecnicos` y no se sirven como archivos estáticos. Después de ejecutar `sql/reporte-tecnico.sql`, ejecuta una vez `sql/reporte-tecnico-flujo-completo.sql` en Workbench para agregar estados de publicación, evidencias y registro de envíos. Los reportes ya existentes quedan como borrador hasta que un usuario autorizado los publique.
+Las evidencias se guardan en `storage/reportes-tecnicos` y no se sirven como archivos estáticos. El PDF del cliente muestra los nombres de las evidencias, no los archivos. Después de ejecutar `sql/reporte-tecnico.sql`, ejecuta una vez `sql/reporte-tecnico-flujo-completo.sql` en Workbench para agregar estados de publicación, evidencias y registro de envíos. Los reportes ya existentes quedan como borrador hasta que un usuario autorizado los publique.
 
 ### Tipos de servicio y citas
 
