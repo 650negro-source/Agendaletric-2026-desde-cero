@@ -75,7 +75,7 @@ async function validarCita(req, res, next) {
     );
 
     return res.status(200).json({
-      message: "Appointment validated; reminder sending was simulated",
+      message: "Appointment validated; a demo email reminder was scheduled 24 hours before",
       data: result,
     });
   } catch (error) {

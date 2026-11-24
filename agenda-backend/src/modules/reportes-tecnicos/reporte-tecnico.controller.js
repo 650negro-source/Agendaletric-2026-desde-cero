@@ -221,7 +221,9 @@ async function publishByCitaId(req, res, next) {
     );
 
     return res.status(200).json({
-      message: "Report published; the customer email was simulated and not sent",
+      message: result.envio.estado_envio === "ENVIADO"
+        ? "Report published and email delivered"
+        : "Report published, but email delivery failed and was recorded",
       data: result,
     });
   } catch (error) {
@@ -238,7 +240,27 @@ async function requestCorrectionByCitaId(req, res, next) {
     );
 
     return res.status(200).json({
-      message: "Correction requested; the technician email was simulated and not sent",
+      message: result.envio.estado_envio === "ENVIADO"
+        ? "Correction requested and email delivered"
+        : "Correction requested, but email delivery failed and was recorded",
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function retryNotificationByCitaId(req, res, next) {
+  try {
+    const result = await reporteService.retryNotificationByCitaId(
+      req.params.idCita,
+      req.user
+    );
+
+    return res.status(200).json({
+      message: result.envio.estado_envio === "ENVIADO"
+        ? "Report notification email delivered"
+        : "Report notification email delivery failed and was recorded",
       data: result,
     });
   } catch (error) {
@@ -255,4 +277,5 @@ module.exports = {
   downloadPdf,
   publishByCitaId,
   requestCorrectionByCitaId,
+  retryNotificationByCitaId,
 };

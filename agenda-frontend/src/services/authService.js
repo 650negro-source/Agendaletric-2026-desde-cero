@@ -35,6 +35,20 @@ export async function changePassword(token, passwordData) {
   })
 }
 
+export async function requestPasswordReset(correo) {
+  return apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: { correo: correo.trim() },
+  })
+}
+
+export async function resetPassword(token, passwordData) {
+  return apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: { token, ...passwordData },
+  })
+}
+
 export async function getMyProfile(token) {
   const response = await apiRequest('/users/me', { token })
   const profile = response?.data?.user ?? response?.data ?? response?.user

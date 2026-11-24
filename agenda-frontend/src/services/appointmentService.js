@@ -12,14 +12,6 @@ export async function getAppointments(token) {
   return getData('/citas', token)
 }
 
-export async function getServiceTypes(token) {
-  return getData('/tipos-servicio', token)
-}
-
-export async function getFaultTypes(token) {
-  return getData('/tipos-averia', token)
-}
-
 export async function getAvailableSlots(token, { fecha, id_tipo_servicio, id_cita }) {
   const params = new URLSearchParams({
     fecha,
@@ -57,13 +49,5 @@ export async function transitionAppointment(token, appointmentId, action, body =
     token,
     method: 'PATCH',
     body,
-  })
-}
-
-export async function updateServiceType(token, serviceType) {
-  return apiRequest(`/tipos-servicio/${serviceType.id_tipo_servicio}`, {
-    token,
-    method: 'PUT',
-    body: serviceType,
   })
 }

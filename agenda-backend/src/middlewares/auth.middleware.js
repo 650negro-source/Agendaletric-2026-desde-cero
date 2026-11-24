@@ -20,7 +20,11 @@ async function authenticate(req, res, next) {
 
     const user = await authRepository.findById(decoded.id);
 
-    if (!user || user.estado !== 1) {
+    if (
+      !user ||
+      user.estado !== 1 ||
+      (Number(decoded.ver) || 0) !== (Number(user.token_version) || 0)
+    ) {
       return res.status(401).json({
         message: "Invalid or inactive user"
       });

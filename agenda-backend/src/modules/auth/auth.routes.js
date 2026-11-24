@@ -5,6 +5,8 @@ const authController = require("./auth.controller");
 const {
   validateLogin,
   validateChangePassword,
+  validateForgotPassword,
+  validateResetPassword,
 } = require("./auth.validator");
 
 const router = express.Router();
@@ -20,6 +22,41 @@ const loginLimiter = rateLimit({
     });
   },
 });
+const recoveryRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({
+      message: "Too many password recovery requests. Try again in 15 minutes.",
+    });
+  },
+});
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({
+      message: "Too many password reset attempts. Try again in 15 minutes.",
+    });
+  },
+});
+
+router.post(
+  "/forgot-password",
+  recoveryRequestLimiter,
+  validateForgotPassword,
+  authController.requestPasswordReset
+);
+router.post(
+  "/reset-password",
+  passwordResetLimiter,
+  validateResetPassword,
+  authController.resetPassword
+);
 
 router.post(
   "/login",

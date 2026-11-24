@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const app = require('./app');
 const pool = require('./config/database');
+const { startReminderWorker } = require('./modules/notificaciones/appointment-reminder.worker');
 
 const PORT = process.env.PORT || 3000;
 const DB_RETRY_INTERVAL_MS = 5000;
@@ -23,6 +24,7 @@ async function connectToDatabase() {
 
 async function startServer() {
   await connectToDatabase();
+  startReminderWorker();
 
   app.listen(PORT, () => {
     console.log(`Agendaletric-2026 API running on port ${PORT}`);

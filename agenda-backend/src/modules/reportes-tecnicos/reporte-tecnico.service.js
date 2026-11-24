@@ -1,10 +1,35 @@
 const citaService = require("../citas/cita.service");
+const emailService = require("../notificaciones/email.service");
 const reporteRepository = require("./reporte-tecnico.repository");
 
 function createError(message, status) {
   const error = new Error(message);
   error.status = status;
   return error;
+}
+
+async function deliverNotification(idEnvio, eventType, send) {
+  let deliveryError;
+  try {
+    await send();
+  } catch (error) {
+    deliveryError = error;
+  }
+
+  if (deliveryError) {
+    console.error("Report notification email delivery failed", {
+      eventId: idEnvio,
+      eventType,
+      error: deliveryError.message,
+    });
+    return reporteRepository.updateEnvioStatus(
+      idEnvio,
+      "FALLIDO",
+      "No se pudo enviar el correo. Revisa la configuración SMTP y los registros del backend."
+    );
+  }
+
+  return reporteRepository.updateEnvioStatus(idEnvio, "ENVIADO", null);
 }
 
 async function getByCitaId(idCita, user) {
@@ -51,6 +76,10 @@ async function getByCitaId(idCita, user) {
     delete response.comentario_admin;
     delete response.id_usuario_cliente;
     delete response.id_usuario_tecnico;
+  } else {
+    response.ultimo_envio = await reporteRepository.findLastEnvioByReporteId(
+      reporte.id_reporte
+    );
   }
 
   return response;
@@ -115,9 +144,14 @@ async function publishByCitaId(idCita, user) {
 
   await ensureCanManageByCitaId(idCita, user);
   const result = await reporteRepository.publishByCitaId(idCita, user.id);
+  const envio = await deliverNotification(
+    result.envio.id_envio,
+    result.envio.tipo_evento,
+    () => emailService.sendReportPublishedEmail(result.mail)
+  );
   return {
     reporte: await getByCitaId(idCita, user),
-    envio: result.envio,
+    envio,
   };
 }
 
@@ -132,9 +166,39 @@ async function requestCorrectionByCitaId(idCita, user, comentario) {
     user.id,
     comentario
   );
+  const envio = await deliverNotification(
+    result.envio.id_envio,
+    result.envio.tipo_evento,
+    () => emailService.sendReportCorrectionEmail(result.mail)
+  );
   return {
     reporte: await getByCitaId(idCita, user),
-    envio: result.envio,
+    envio,
+  };
+}
+
+async function retryNotificationByCitaId(idCita, user) {
+  if (![1, 3].includes(user.role)) {
+    throw createError("Only administrators and assigned technicians can retry report notifications", 403);
+  }
+
+  await ensureCanManageByCitaId(idCita, user);
+  const result = await reporteRepository.createRetryEnvioByCitaId(
+    idCita,
+    user.id
+  );
+  const send = result.envio.tipo_evento === "PUBLICACION_CLIENTE"
+    ? () => emailService.sendReportPublishedEmail(result.mail)
+    : () => emailService.sendReportCorrectionEmail(result.mail);
+  const envio = await deliverNotification(
+    result.envio.id_envio,
+    result.envio.tipo_evento,
+    send
+  );
+
+  return {
+    reporte: await getByCitaId(idCita, user),
+    envio,
   };
 }
 
@@ -146,4 +210,5 @@ module.exports = {
   getArchivo,
   publishByCitaId,
   requestCorrectionByCitaId,
+  retryNotificationByCitaId,
 };

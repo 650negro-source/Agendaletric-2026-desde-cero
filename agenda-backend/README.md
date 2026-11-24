@@ -16,7 +16,7 @@ Este proyecto corresponde a la capa de servidor de AgendaLetric. Su propósito e
 - Conexión a base de datos MySQL
 - Reportes técnicos con evidencias privadas, publicación y PDF descargable
 - Catálogo de tipos de servicio asociado a nuevas citas
-- Simulación y registro de notificaciones por correo (no se envían correos reales)
+- Notificaciones por SMTP para reportes técnicos y recuperación de contraseña
 - Estructura modular por dominio
 - Servidor listo para desarrollo con nodemon
 
@@ -31,6 +31,7 @@ Este proyecto corresponde a la capa de servidor de AgendaLetric. Su propósito e
 - dotenv
 - Multer (carga multipart de evidencias)
 - PDFKit (generación de reportes PDF)
+- Nodemailer (entrega SMTP de correos)
 - nodemon
 
 ## Requisitos previos
@@ -90,9 +91,16 @@ DB_NAME=agendaletric
 DB_PORT=3306
 JWT_SECRET=tu_secret_super_segura
 JWT_EXPIRES_IN=2h
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=usuario_smtp
+SMTP_PASS=clave_smtp
+MAIL_FROM="AgendaLetric <no-reply@example.com>"
+FRONTEND_URL=http://localhost:5173/
 ```
 
-El proyecto ya incluye una configuración de ejemplo en el archivo `.env` del entorno actual, con los valores requeridos para conectarse a MySQL y generar tokens JWT.
+Configura las variables SMTP con los datos de tu proveedor en el `.env` local del backend. No uses credenciales reales en el frontend ni las compartas en el repositorio. `FRONTEND_URL` es la dirección donde se abre la aplicación para construir enlaces de recuperación.
 
 ## Estructura del proyecto
 
@@ -153,11 +161,13 @@ El módulo de autenticación está disponible en `src/modules/auth`:
 
 - `POST /api/auth/login`
 - `PATCH /api/auth/change-password` - Requiere JWT y la contraseña actual.
+- `POST /api/auth/forgot-password` - Solicitar por correo un enlace de un solo uso, válido por 30 minutos.
+- `POST /api/auth/reset-password` - Cambiar la contraseña con el enlace válido.
 - `POST /api/clientes` - Registro público que asigna exclusivamente el rol `CUSTOMER`.
 
-El inicio de sesión permite cinco intentos fallidos por dirección IP cada 15 minutos; la respuesta de credenciales inválidas es genérica. El contador usa memoria del proceso, por lo que un despliegue con varias instancias debe configurar un almacén compartido. Las contraseñas nuevas deben tener entre 10 y 64 caracteres, no incluir espacios y contener mayúscula, minúscula, número y símbolo; también se rechazan algunos patrones comunes. Se comparan exactamente como se reciben y se almacenan con bcrypt. El registro y la creación administrativa requieren confirmar la contraseña. La recuperación de contraseña por correo queda pendiente de configurar un proveedor de correo real.
+El inicio de sesión permite cinco intentos fallidos por dirección IP cada 15 minutos; la respuesta de credenciales inválidas es genérica. Las solicitudes de recuperación están limitadas y siempre responden de forma genérica para no revelar si un correo tiene cuenta. Los tokens de recuperación se guardan como hash, vencen a los 30 minutos, son de un solo uso y, al cambiar la contraseña, se invalidan los JWT anteriores. El contador de límites usa memoria del proceso, por lo que un despliegue con varias instancias debe configurar un almacén compartido. Las contraseñas nuevas deben tener entre 10 y 64 caracteres, no incluir espacios y contener mayúscula, minúscula, número y símbolo; también se rechazan algunos patrones comunes. Se comparan exactamente como se reciben y se almacenan con bcrypt. El registro y la creación administrativa requieren confirmar la contraseña.
 
-El campo de correo mantiene el límite actual de 150 caracteres de la base de datos, aunque la guía propone hasta 254; ampliarlo requiere una migración del esquema. Cambiar la contraseña no invalida otros JWT ya emitidos; vencen según `JWT_EXPIRES_IN`.
+El campo de correo mantiene el límite actual de 150 caracteres de la base de datos, aunque la guía propone hasta 254; ampliarlo requiere una migración del esquema. El cambio autenticado de contraseña conserva el comportamiento actual de JWT; la recuperación por correo sí incrementa la versión de sesión e invalida tokens previos.
 
 El frontend conserva el JWT temporalmente en `sessionStorage` para esta etapa de desarrollo. Antes de publicar el sistema, se debe decidir si migrarlo a cookie `HttpOnly`, `Secure` y `SameSite` y configurar la protección CSRF correspondiente.
 
@@ -221,17 +231,18 @@ La autenticación usa JWT y las rutas protegidas consultan el estado actual de l
 
 ### Reportes técnicos
 
-Las rutas están protegidas con JWT. Administradores y técnicos asignados pueden consultar y editar el reporte, cargar/descargar evidencias y publicarlo. Un reporte publicado queda bloqueado para edición y nuevas evidencias; solo administración puede solicitar corrección, tras lo cual vuelve a habilitarse su edición. El cliente propietario solo puede consultar reportes publicados y descargar el PDF; los archivos de evidencia se mantienen privados para administración y el técnico asignado.
+Las rutas están protegidas con JWT. Administradores y técnicos asignados pueden consultar y editar el reporte, cargar/descargar evidencias y publicarlo. Un reporte publicado queda bloqueado para edición y nuevas evidencias; solo administración puede solicitar corrección, tras lo cual vuelve a habilitarse su edición. El cliente propietario solo puede consultar reportes publicados y descargar el PDF; los archivos de evidencia se mantienen privados para administración y el técnico asignado. La publicación y las solicitudes de corrección envían correo SMTP; cada intento se registra como `PENDIENTE`, `ENVIADO` o `FALLIDO`.
 
 - `GET /api/reportes-tecnicos/:idCita` - Consultar reporte
 - `PUT /api/reportes-tecnicos/:idCita` - Actualizar diagnóstico, procedimiento y observaciones (borrador o corrección solicitada)
 - `POST /api/reportes-tecnicos/:idCita/archivos` - Cargar un archivo JPG o MP4 (máximo 10 MB por archivo; bloqueado tras publicar)
 - `GET /api/reportes-tecnicos/:idCita/archivos/:idArchivo` - Descargar evidencia (administrador o técnico asignado)
-- `POST /api/reportes-tecnicos/:idCita/enviar` - Publicar y registrar un correo simulado al cliente
-- `POST /api/reportes-tecnicos/:idCita/solicitar-correccion` - Solicitar corrección (solo administrador; correo simulado al técnico)
+- `POST /api/reportes-tecnicos/:idCita/enviar` - Publicar y enviar correo SMTP al cliente
+- `POST /api/reportes-tecnicos/:idCita/solicitar-correccion` - Solicitar corrección (solo administrador; envía correo al técnico)
+- `POST /api/reportes-tecnicos/:idCita/reintentar-notificacion` - Reintentar el último correo fallido (administrador o técnico asignado)
 - `GET /api/reportes-tecnicos/:idCita/pdf` - Descargar el PDF generado bajo demanda
 
-Las evidencias se guardan en `storage/reportes-tecnicos` y no se sirven como archivos estáticos. El PDF del cliente muestra los nombres de las evidencias, no los archivos. Después de ejecutar `sql/reporte-tecnico.sql`, ejecuta una vez `sql/reporte-tecnico-flujo-completo.sql` en Workbench para agregar estados de publicación, evidencias y registro de envíos. Los reportes ya existentes quedan como borrador hasta que un usuario autorizado los publique.
+Las evidencias se guardan en `storage/reportes-tecnicos` y no se sirven como archivos estáticos. El PDF del cliente muestra los nombres de las evidencias, no los archivos. Después de ejecutar `sql/reporte-tecnico.sql`, ejecuta una vez `sql/reporte-tecnico-flujo-completo.sql` en Workbench para agregar estados de publicación, evidencias y registro de envíos. Ejecuta una sola vez `sql/notificaciones-smtp.sql` después de esa migración para habilitar estados de entrega, tokens de recuperación y versión de JWT. Los reportes ya existentes quedan como borrador hasta que un usuario autorizado los publique. Si SMTP falla, el cambio de estado del reporte se conserva, el fallo queda registrado y un usuario autorizado puede reintentar el envío.
 
 ### Tipos de servicio y citas
 
@@ -247,6 +258,8 @@ La duración se configura en minutos, de 60 a 360 en incrementos de 60. Un servi
 Para consultar horarios disponibles usa `GET /api/citas/disponibilidad?fecha=AAAA-MM-DD&id_tipo_servicio=ID`; al reprogramar agrega `id_cita=ID`. La disponibilidad presenta inicios cada hora, verifica la duración completa dentro del horario del técnico y respeta un margen de 30 minutos entre trabajos. Crear y reprogramar vuelven a validar el horario y asignan el técnico automáticamente dentro de una transacción. La reserva exige 24 horas de anticipación; cancelar o reprogramar una cita existente exige 12 horas. Cada cliente puede tener una sola cita activa.
 
 El cliente puede crear y consultar sus citas, y cancelar o reprogramar las propias. El administrador consulta y gestiona todas las citas; el técnico consulta las asignadas y puede gestionar su estado, cancelar o reprogramar las asignadas. Solo administrador y técnico pueden validar, iniciar y finalizar una atención. Al finalizar se genera el reporte técnico.
+
+Al validar una cita se programa un recordatorio por correo al cliente para 24 horas antes. Por ahora funciona en modo demostración: el proceso del backend revisa recordatorios vencidos cada minuto y los marca como `SIMULADO`, sin enviar correo ni SMS. El cliente puede consultar el estado desde su historial. Si la cita se cancela, se reprograma o inicia la atención, el recordatorio pendiente se cancela.
 
 El tipo de avería y la descripción del problema son campos separados y obligatorios. Las citas históricas mantienen los datos guardados y reciben `NULL` en los campos de duración y servicio que no existían; el nombre seleccionado se guarda como copia en la cita.
 

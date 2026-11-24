@@ -9,15 +9,19 @@ El frontend ya incluye:
 - Login con `POST /api/auth/login` y almacenamiento temporal del JWT en `sessionStorage`.
 - Registro público de clientes; las cuentas de técnicos y administradores las crea un administrador.
 - Cambio de contraseña autenticado para los tres roles.
+- Recuperación de contraseña mediante enlace de correo de un solo uso, válido por 30 minutos.
+- Notificaciones SMTP para publicación de reportes y solicitudes de corrección; el estado del envío se informa y se puede reintentar si falla.
 - Validación automática de la sesión con `GET /api/users/me` al cargar la app.
 - Recuperación de sesión vencida con cierre de sesión automática y reingreso.
 - Módulo de usuarios con listado, búsqueda, detalle, creación, edición, cambio de estado y eliminación lógica.
 - Perfil propio para clientes y directorio administrativo de clientes con consulta, edición, estado y baja lógica.
 - Gestión de vehículos propia para clientes y administrativa, con validación de placa, tipo, energía y estado.
-- Módulo de citas por rol: reservas y reprogramación para clientes, gestión de estados para técnicos y administración, y configuración de duración por servicio.
+- Módulo de citas por rol: reservas y reprogramación para clientes y gestión de estados para técnicos y administración.
+- Recordatorio de correo demostrativo al cliente, programado 24 horas antes de una cita validada; muestra su estado en el historial sin enviar mensajes reales.
+- Catálogos administrativos para gestionar tipos de servicio, tipos de avería, detalles requeridos y duraciones estimadas.
 - Reportes técnicos por rol: edición y evidencias antes de publicar, solicitud administrativa de corrección y consulta del cliente mediante reporte publicado y PDF.
 - Controles de permisos por rol según el backend (`SYSTEM_ADMIN`, `TECHNICIAN`, `CUSTOMER`).
-- Gestión de usuarios, clientes y configuración de servicios visible solo para administración.
+- Gestión de usuarios, clientes y catálogos visible solo para administración.
 - Manejo de estados de carga, vacío, error y mensajes de éxito.
 - Integración con el cliente HTTP centralizado y validaciones de respuesta en cada servicio.
 
@@ -58,12 +62,17 @@ La interfaz inicia sesión mediante `POST /api/auth/login`, conserva el JWT en `
 | Acción | Ruta existente | Permiso del backend |
 | --- | --- | --- |
 | Iniciar sesión | `POST /api/auth/login` | Credenciales válidas y cuenta activa |
+| Solicitar recuperación | `POST /api/auth/forgot-password` | Público; respuesta genérica para no revelar cuentas |
+| Restablecer contraseña | `POST /api/auth/reset-password` | Público; token válido de un solo uso |
 | Listar usuarios | `GET /api/users` | Rol `1` |
 | Crear usuario | `POST /api/users` | Rol `1` |
 | Editar nombre, correo y rol permitido | `PUT /api/users/:id` | Rol `1` |
 | Cambiar estado | `PATCH /api/users/:id/status` | Rol `1` |
 | Eliminación lógica | `DELETE /api/users/:id` | Rol `1` |
 | Cambiar contraseña | `PATCH /api/auth/change-password` | Cualquier usuario autenticado |
+| Publicar reporte y notificar | `POST /api/reportes-tecnicos/:idCita/enviar` | Administración o técnico asignado |
+| Solicitar corrección y notificar | `POST /api/reportes-tecnicos/:idCita/solicitar-correccion` | Administración |
+| Reintentar notificación fallida | `POST /api/reportes-tecnicos/:idCita/reintentar-notificacion` | Administración o técnico asignado |
 | Registrar cliente | `POST /api/clientes` | Público; solo asigna rol `CUSTOMER` |
 
 El formulario de creación requiere nombre válido, correo, contraseña y confirmación. Las contraseñas nuevas deben tener entre 10 y 64 caracteres, sin espacios, y contener mayúscula, minúscula, número y símbolo. El registro de clientes también solicita documento, teléfono y confirmación; los clientes no pueden asignarse otro rol mediante esa ruta. Las cuentas de cliente existentes conservan su perfil y no pueden cambiar de rol desde la gestión genérica de usuarios.
@@ -102,9 +111,9 @@ La baja es lógica: conserva el vehículo y sus citas, pero impide usarlo para s
 
 ## Módulo de citas
 
-El cliente solicita una cita con un vehículo propio activo, tipo de avería, servicio y descripción. La interfaz consulta los horarios disponibles cada hora y el backend asigna automáticamente un técnico. El servicio debe tener una duración configurada por administración (de 1 a 6 horas); se conserva una copia de esa duración en cada cita. Los horarios requieren 24 horas de anticipación y consideran el tiempo total de servicio más un margen de 30 minutos. Se permite una sola cita activa por cliente; cancelar o reprogramar requiere 12 horas de anticipación.
+El cliente solicita una cita con un vehículo propio activo, tipo de avería, servicio y descripción. La interfaz consulta los horarios disponibles cada hora y el backend asigna automáticamente un técnico. Los horarios requieren 24 horas de anticipación y consideran el tiempo total del servicio más un margen de 30 minutos. Se permite una sola cita activa por cliente; cancelar o reprogramar requiere 12 horas de anticipación.
 
-Clientes consultan, cancelan y reprograman sus citas; técnicos ven sus asignaciones y gestionan el avance hasta finalizar, lo cual requiere diagnóstico y procedimiento para generar el reporte; administración ve todas las citas y configura las duraciones. La API vuelve a comprobar disponibilidad al reservar o reprogramar, por lo que un horario puede dejar de estar libre entre la consulta y la confirmación.
+Clientes consultan, cancelan y reprograman sus citas; técnicos ven sus asignaciones y gestionan el avance hasta finalizar, lo cual requiere diagnóstico y procedimiento para generar el reporte; administración ve todas las citas. La API vuelve a comprobar disponibilidad al reservar o reprogramar, por lo que un horario puede dejar de estar libre entre la consulta y la confirmación.
 
 | Acción | Ruta | Permiso |
 | --- | --- | --- |
@@ -113,7 +122,17 @@ Clientes consultan, cancelan y reprograman sus citas; técnicos ven sus asignaci
 | Solicitar cita | `POST /api/citas` | `CUSTOMER` |
 | Cancelar/reprogramar | `PATCH /api/citas/:id/cancelar`, `PATCH /api/citas/:id/reprogramar` | Propietario, técnico asignado o `SYSTEM_ADMIN` |
 | Validar/iniciar/finalizar | `PATCH /api/citas/:id/validar`, `/iniciar`, `/finalizar` | Técnico asignado o `SYSTEM_ADMIN` |
-| Configurar duración de servicio | `PUT /api/tipos-servicio/:id` | `SYSTEM_ADMIN` |
+## Catálogos
+
+Solo administración gestiona el catálogo de tipos de servicio y de averías. Los registros se pueden editar y activar o desactivar; no se borran físicamente, para conservar el historial asociado a citas. Cada servicio puede tener descripción, requerir detalle del cliente y duración de 1 a 6 horas. La duración puede quedar sin configurar mientras se prepara el catálogo, pero un servicio sin duración no se ofrece para reservas.
+
+| Acción | Ruta | Permiso |
+| --- | --- | --- |
+| Listar tipos de servicio y avería | `GET /api/tipos-servicio`, `GET /api/tipos-averia` | Roles autenticados; administración ve también inactivos |
+| Crear/editar servicio | `POST/PUT /api/tipos-servicio`, `PUT /api/tipos-servicio/:id` | `SYSTEM_ADMIN` |
+| Activar/desactivar servicio | `PATCH /api/tipos-servicio/:id/estado` | `SYSTEM_ADMIN` |
+| Crear/editar tipo de avería | `POST/PUT /api/tipos-averia`, `PUT /api/tipos-averia/:id` | `SYSTEM_ADMIN` |
+| Activar/desactivar tipo de avería | `PATCH /api/tipos-averia/:id/estado` | `SYSTEM_ADMIN` |
 
 ## Técnicos y horarios
 
@@ -158,12 +177,13 @@ src/
   features/
     auth/                 Inicio de sesión y registro de clientes
     clientes/             Perfil propio y gestión administrativa de clientes
-    citas/                Reservas, agenda por rol y duración de servicios
+    citas/                Reservas, reprogramación y agenda por rol
+    catalogos/            Administración de servicios y tipos de avería
     reportes/             Gestión y consulta de reportes técnicos por rol
     tecnicos/             Perfiles técnicos y horarios por rol
     vehiculos/            Vehículos propios y gestión administrativa
     users/                Pantalla, tabla, formulario, detalle y confirmación
-  services/               Cliente HTTP, autenticación, usuarios, clientes, citas, reportes, técnicos y vehículos
+  services/               Cliente HTTP, autenticación, usuarios, clientes, citas, catálogos, reportes, técnicos y vehículos
   shared/                 Roles y políticas de validación
   App.jsx                 Sesión, restauración del perfil y estructura principal
   main.jsx                Montaje de React y estilos globales
@@ -197,13 +217,13 @@ El frontend oculta acciones que el rol no puede ejecutar, pero la autorización 
 10. Como cliente, registra varios vehículos, edita uno, reemplázalo con un registro nuevo y da de baja el anterior. Comprueba que no puedas ver ni editar el vehículo de otro cliente.
 11. Como administrador, revisa la relación de cada vehículo con su cliente, prueba placa duplicada y formatos inválidos, y comprueba que una moto no se acepte.
 12. Verifica que no se permita usar vehículos inactivos para crear citas ni dar de baja vehículos con citas activas; confirma que las citas anteriores sigan mostrando su placa.
-13. Como administración, configura la duración de cada servicio de 1 a 6 horas; confirma que los servicios sin duración no aparezcan como reservables.
+13. Como administración, crea, edita, activa y desactiva servicios y tipos de avería; prueba nombres duplicados. Configura duraciones de 1 a 6 horas y confirma que servicios sin duración o inactivos no se puedan reservar.
 14. Como cliente, solicita una cita, consulta los horarios disponibles, verifica la asignación automática y prueba cancelación/reprogramación dentro y fuera de las ventanas de 12/24 horas. Intenta solicitar una segunda cita activa.
 15. Como técnico, valida e inicia una cita asignada, finalízala con diagnóstico y procedimiento, y verifica que el reporte técnico se genere. Confirma que no pueda gestionar citas de otro técnico.
 16. Como administración, registra perfiles técnicos y varios turnos por día; verifica que no se acepten turnos superpuestos y que editar/eliminar un turno no deje citas activas fuera del horario.
 17. Como técnico, consulta su perfil y turnos; confirma que no pueda listar ni modificar perfiles u horarios de otros técnicos.
 18. En Postman prueba también los códigos 400 (campos y formatos inválidos), 401 (sin token o token inválido), 403 (rol sin permiso), 404 (registro inexistente), 409 (conflictos de horario, citas activas o estado) y 429 (límite de login).
-19. Comprueba el cambio de contraseña con contraseña actual incorrecta, confirmación distinta y contraseña válida. Verifica que login compare la contraseña exactamente, incluidos espacios.
+19. Comprueba el cambio de contraseña con contraseña actual incorrecta, confirmación distinta y contraseña válida. Prueba solicitar recuperación con un correo registrado y otro no registrado; la respuesta debe ser genérica. Usa el enlace SMTP para cambiar la contraseña y confirma que no pueda reutilizarse o usarse después de vencer.
 20. En DevTools → Network comprueba `POST /api/auth/login`, `GET /api/users/me` al cargar y las solicitudes protegidas con `Authorization: Bearer <token>`. No copies el token en capturas.
 21. Verifica la interfaz a 320 px y escritorio. Usa una base local y cuentas de prueba; nunca pruebes `DELETE` con datos reales.
 

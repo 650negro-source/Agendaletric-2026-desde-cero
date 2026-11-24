@@ -5,6 +5,7 @@ import {
   getAppointmentReport,
   publishAppointmentReport,
   requestReportCorrection,
+  retryReportNotification,
   updateAppointmentReport,
   uploadReportEvidence,
 } from '../../services/technicalReportService.js'
@@ -21,6 +22,12 @@ const PUBLICATION_LABELS = {
   BORRADOR: 'Borrador',
   PUBLICADO: 'Publicado',
   REQUIERE_CORRECCION: 'Requiere corrección',
+}
+const DELIVERY_LABELS = {
+  PENDIENTE: 'Pendiente',
+  ENVIADO: 'Enviado',
+  FALLIDO: 'Fallido',
+  SIMULADO: 'Simulado',
 }
 
 function formatDate(value) {
@@ -50,6 +57,7 @@ function ReportesPage({ session }) {
   const [pageError, setPageError] = useState('')
   const [infoMessage, setInfoMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [deliveryWarning, setDeliveryWarning] = useState('')
   const reportRequestId = useRef(0)
 
   const loadAppointments = useCallback(async () => {
@@ -100,6 +108,7 @@ function ReportesPage({ session }) {
     setInfoMessage('')
     setPageError('')
     setSuccessMessage('')
+    setDeliveryWarning('')
     setIsLoadingReport(true)
     try {
       const loadedReport = await getAppointmentReport(session.token, appointment.id_cita)
@@ -184,10 +193,19 @@ function ReportesPage({ session }) {
     setIsSaving(true)
     setPageError('')
     setSuccessMessage('')
+    setDeliveryWarning('')
     try {
-      await publishAppointmentReport(session.token, selectedAppointment.id_cita)
+      const response = await publishAppointmentReport(
+        session.token,
+        selectedAppointment.id_cita
+      )
       await refreshReport()
-      setSuccessMessage('El reporte se publicó para el cliente.')
+      if (response.data?.envio?.estado_envio === 'ENVIADO') {
+        setSuccessMessage('El reporte se publicó y el correo se envió al cliente.')
+      } else {
+        setSuccessMessage('El reporte se publicó correctamente.')
+        setDeliveryWarning('El correo no se pudo enviar. Revisa la configuración SMTP; puedes reintentar el envío desde este reporte.')
+      }
     } catch (error) {
       setPageError(error.message)
     } finally {
@@ -201,15 +219,45 @@ function ReportesPage({ session }) {
     setIsSaving(true)
     setPageError('')
     setSuccessMessage('')
+    setDeliveryWarning('')
     try {
-      await requestReportCorrection(
+      const response = await requestReportCorrection(
         session.token,
         selectedAppointment.id_cita,
         correctionComment
       )
       setCorrectionComment('')
       await refreshReport()
-      setSuccessMessage('Se solicitó la corrección al técnico.')
+      if (response.data?.envio?.estado_envio === 'ENVIADO') {
+        setSuccessMessage('Se solicitó la corrección y el correo se envió al técnico.')
+      } else {
+        setSuccessMessage('La solicitud de corrección se registró correctamente.')
+        setDeliveryWarning('El correo no se pudo enviar. Revisa la configuración SMTP; puedes reintentar el envío desde este reporte.')
+      }
+    } catch (error) {
+      setPageError(error.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleRetryNotification() {
+    if (!selectedAppointment) return
+    setIsSaving(true)
+    setPageError('')
+    setSuccessMessage('')
+    setDeliveryWarning('')
+    try {
+      const response = await retryReportNotification(
+        session.token,
+        selectedAppointment.id_cita
+      )
+      await refreshReport()
+      if (response.data?.envio?.estado_envio === 'ENVIADO') {
+        setSuccessMessage('El correo se envió correctamente.')
+      } else {
+        setDeliveryWarning('El envío volvió a fallar. Revisa la configuración SMTP del backend.')
+      }
     } catch (error) {
       setPageError(error.message)
     } finally {
@@ -250,6 +298,7 @@ function ReportesPage({ session }) {
 
       {pageError && <p className="feedback feedback--error" role="alert">{pageError}</p>}
       {successMessage && <p className="feedback feedback--success" role="status">{successMessage}</p>}
+      {deliveryWarning && <p className="feedback feedback--notice" role="status">{deliveryWarning}</p>}
 
       <section className="users-card">
         <div className="users-toolbar">
@@ -400,6 +449,26 @@ function ReportesPage({ session }) {
                     ))}
                   </ul>
                 </div>
+              )}
+
+              {canManage && report.ultimo_envio && (
+                <p className="report-delivery-state">
+                  Última notificación: {DELIVERY_LABELS[report.ultimo_envio.estado_envio] || report.ultimo_envio.estado_envio}
+                  {report.ultimo_envio.error_detalle
+                    ? ` — ${report.ultimo_envio.error_detalle}`
+                    : ''}
+                </p>
+              )}
+
+              {canManage && report.ultimo_envio?.estado_envio === 'FALLIDO' && (
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => void handleRetryNotification()}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Reintentando...' : 'Reintentar envío de correo'}
+                </button>
               )}
 
               {canManage && isEditable && (

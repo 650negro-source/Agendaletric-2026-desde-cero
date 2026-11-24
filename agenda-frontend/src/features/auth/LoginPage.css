@@ -99,6 +99,11 @@
   margin-top: 12px;
 }
 
+.login-recovery-link {
+  width: 100%;
+  margin-top: 12px;
+}
+
 .customer-registration-form {
   max-height: calc(100vh - 48px);
   overflow-y: auto;

@@ -443,12 +443,24 @@ async function findAllByClienteUserId(idUsuario) {
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
-       v.placa, u_tecnico.nombre AS nombre_tecnico
+       v.placa, u_tecnico.nombre AS nombre_tecnico,
+       recordatorio.estado_envio AS estado_recordatorio,
+       DATE_FORMAT(recordatorio.fecha_programada, '%Y-%m-%d %H:%i')
+         AS fecha_recordatorio
      FROM cita c
      INNER JOIN cliente ON cliente.id_cliente = c.id_cliente
      INNER JOIN usuario u_cliente ON u_cliente.id_usuario = cliente.id_usuario
      INNER JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
      INNER JOIN usuario u_tecnico ON u_tecnico.id_usuario = c.id_usuario_tecnico
+     LEFT JOIN recordatorio
+       ON recordatorio.id_recordatorio = (
+         SELECT ultimo.id_recordatorio
+         FROM recordatorio ultimo
+         WHERE ultimo.id_cita = c.id_cita
+           AND ultimo.medio_envio = 'CORREO'
+         ORDER BY ultimo.id_recordatorio DESC
+         LIMIT 1
+       )
      WHERE cliente.id_usuario = ?
      ORDER BY c.fecha_programada, c.hora_programada`,
     [idUsuario]
@@ -522,6 +534,16 @@ async function changeEstado(
       [estadoNuevo, observaciones, id]
     );
 
+    if (estadoNuevo === "EN_PROCESO") {
+      await connection.execute(
+        `UPDATE recordatorio
+         SET estado_envio = 'CANCELADO'
+         WHERE id_cita = ?
+           AND estado_envio = 'PENDIENTE'`,
+        [id]
+      );
+    }
+
     let reporteCreado = null;
     if (estadoNuevo === "ATENDIDA") {
       if (!reporte) {
@@ -566,27 +588,26 @@ async function changeEstado(
       const [result] = await connection.execute(
         `INSERT INTO recordatorio
            (id_cita, medio_envio, fecha_programada, fecha_envio, mensaje, estado_envio)
-         VALUES
-           (?, 'CORREO', DATE_SUB(TIMESTAMP(?, ?), INTERVAL 24 HOUR), NOW(), ?, 'SIMULADO'),
-           (?, 'SMS', DATE_SUB(TIMESTAMP(?, ?), INTERVAL 24 HOUR), NOW(), ?, 'SIMULADO')`,
+         VALUES (?, 'CORREO', DATE_SUB(TIMESTAMP(?, ?), INTERVAL 24 HOUR), NULL, ?, 'PENDIENTE')`,
         [
-          id,
-          cita.fecha_programada,
-          cita.hora_programada,
-          `Recordatorio simulado de cita ${cita.codigo_asignacion}`,
           id,
           cita.fecha_programada,
           cita.hora_programada,
           `Recordatorio simulado de cita ${cita.codigo_asignacion}`,
         ]
       );
-      recordatorios = [
-        { medio_envio: "CORREO", estado_envio: "SIMULADO" },
-        { medio_envio: "SMS", estado_envio: "SIMULADO" },
-      ];
-      if (result.affectedRows !== 2) {
-        throw new Error("Could not persist simulated appointment reminders");
+      if (result.affectedRows !== 1) {
+        throw new Error("Could not schedule appointment reminder");
       }
+      const [reminderRows] = await connection.execute(
+        `SELECT medio_envio, estado_envio,
+                DATE_FORMAT(fecha_programada, '%Y-%m-%d %H:%i')
+                  AS fecha_programada
+         FROM recordatorio
+         WHERE id_recordatorio = ?`,
+        [result.insertId]
+      );
+      recordatorios = reminderRows;
     }
 
     const cita = await findCitaByIdWithConnection(connection, id);

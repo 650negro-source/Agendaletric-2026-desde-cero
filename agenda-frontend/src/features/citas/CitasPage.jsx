@@ -5,12 +5,10 @@ import {
   createAppointment,
   getAppointments,
   getAvailableSlots,
-  getFaultTypes,
-  getServiceTypes,
   rescheduleAppointment,
   transitionAppointment,
-  updateServiceType,
 } from '../../services/appointmentService.js'
+import { getFaultTypes, getServiceTypes } from '../../services/catalogService.js'
 import {
   ADMIN_ROLE_ID,
   CUSTOMER_ROLE_ID,
@@ -30,6 +28,13 @@ const STATUS_LABELS = {
   ATENDIDA: 'Atendida',
   CANCELADA: 'Cancelada',
 }
+const REMINDER_LABELS = {
+  PENDIENTE: 'Programado (demostración)',
+  SIMULADO: 'Simulado; no se envió correo',
+  CANCELADO: 'Cancelado',
+  ENVIADO: 'Enviado',
+  FALLIDO: 'Fallido',
+}
 
 function getDefaultDate() {
   const date = new Date()
@@ -47,64 +52,16 @@ function formatDate(value) {
   return `${day}/${month}/${year}`
 }
 
+function formatReminderDate(value) {
+  if (!value) return '—'
+  const [date, time] = String(value).split(' ')
+  return `${formatDate(date)} ${time?.slice(0, 5) || ''}`.trim()
+}
+
 function formatDuration(value) {
   if (!value) return 'Duración pendiente'
   const hours = Number(value) / 60
   return `${hours} ${hours === 1 ? 'hora' : 'horas'}`
-}
-
-function ServiceDurationEditor({ service, token, onSaved, onError }) {
-  const [duration, setDuration] = useState(
-    service.duracion_minutos ? String(service.duracion_minutos) : ''
-  )
-  const [isSaving, setIsSaving] = useState(false)
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    setIsSaving(true)
-    onError('')
-    try {
-      const updated = await updateServiceType(token, {
-        id_tipo_servicio: service.id_tipo_servicio,
-        nombre: service.nombre,
-        descripcion: service.descripcion,
-        requiere_detalle: service.requiere_detalle,
-        duracion_minutos: duration ? Number(duration) : null,
-      })
-      onSaved(updated.data)
-    } catch (error) {
-      onError(error.message)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  return (
-    <form className="service-duration-row" onSubmit={handleSubmit}>
-      <div>
-        <strong>{service.nombre}</strong>
-        <span>{Number(service.estado) === 1 ? 'Activo' : 'Inactivo'}</span>
-      </div>
-      <label>
-        <span className="visually-hidden">Duración de {service.nombre}</span>
-        <select
-          value={duration}
-          onChange={(event) => setDuration(event.target.value)}
-          aria-label={`Duración de ${service.nombre}`}
-        >
-          <option value="">Sin configurar</option>
-          {[60, 120, 180, 240, 300, 360].map((minutes) => (
-            <option key={minutes} value={minutes}>
-              {minutes / 60} {minutes === 60 ? 'hora' : 'horas'}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button className="button button--secondary" type="submit" disabled={isSaving}>
-        {isSaving ? 'Guardando...' : 'Guardar'}
-      </button>
-    </form>
-  )
 }
 
 function CitasPage({ session }) {
@@ -392,13 +349,6 @@ function CitasPage({ session }) {
     }))
   }
 
-  function handleServiceSaved(updatedService) {
-    setServices((current) => current.map((service) => (
-      service.id_tipo_servicio === updatedService.id_tipo_servicio ? updatedService : service
-    )))
-    setSuccessMessage(`Duración actualizada para “${updatedService.nombre}”.`)
-  }
-
   const sortedAppointments = [...appointments].sort((a, b) => (
     `${a.fecha_programada} ${a.hora_programada}`.localeCompare(
       `${b.fecha_programada} ${b.hora_programada}`
@@ -416,7 +366,7 @@ function CitasPage({ session }) {
               ? 'Solicita una cita y consulta su estado. Reserva con 24 horas y modifica o cancela con 12 horas de anticipación.'
               : isTechnician
                 ? 'Consulta las citas asignadas y actualiza su atención.'
-                : 'Consulta las citas y administra las duraciones de los servicios.'}
+                : 'Consulta las citas y administra la atención del taller.'}
           </p>
         </div>
         {isCustomer && (
@@ -443,32 +393,6 @@ function CitasPage({ session }) {
       )}
       {pageError && <p className="feedback feedback--error" role="alert">{pageError}</p>}
       {successMessage && <p className="feedback feedback--success" role="status">{successMessage}</p>}
-
-      {isAdmin && (
-        <section className="users-card appointment-services" aria-labelledby="service-durations-title">
-          <div className="users-toolbar">
-            <div>
-              <h2 id="service-durations-title">Duración estimada de servicios</h2>
-              <p>Configura de 1 a 6 horas. Los servicios sin duración no se ofrecen para reservar.</p>
-            </div>
-          </div>
-          {services.length === 0 ? (
-            <p className="users-state">No hay tipos de servicio registrados.</p>
-          ) : (
-            <div className="service-duration-list">
-              {services.map((service) => (
-                <ServiceDurationEditor
-                  key={service.id_tipo_servicio}
-                  service={service}
-                  token={session.token}
-                  onSaved={handleServiceSaved}
-                  onError={setPageError}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       <section className="users-card" aria-labelledby="appointments-list-title">
         <div className="users-toolbar">
@@ -514,6 +438,13 @@ function CitasPage({ session }) {
                         <span className="user-email">
                           {String(appointment.hora_programada).slice(0, 5)} · {formatDuration(appointment.duracion_minutos)}
                         </span>
+                        {isCustomer && appointment.estado_recordatorio && (
+                          <span className="user-email appointment-reminder" role="status">
+                            Recordatorio: {REMINDER_LABELS[appointment.estado_recordatorio] || appointment.estado_recordatorio}
+                            {appointment.estado_recordatorio === 'PENDIENTE' &&
+                              ` · ${formatReminderDate(appointment.fecha_recordatorio)}`}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <strong>{appointment.tipo_servicio_nombre || 'Servicio'}</strong>

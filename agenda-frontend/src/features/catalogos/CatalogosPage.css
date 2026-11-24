@@ -1,0 +1,127 @@
+.catalogs-page {
+  display: grid;
+  gap: 24px;
+}
+
+.catalogs-page > .users-heading {
+  margin-bottom: 0;
+}
+
+.catalogs-page > .feedback {
+  margin: 0;
+}
+
+.catalog-form-wrap {
+  display: grid;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.catalog-form-wrap h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.catalog-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.catalog-form--fault {
+  grid-template-columns: 1fr;
+}
+
+.catalog-form > label {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.catalog-form input:not([type='checkbox']),
+.catalog-form select,
+.catalog-form textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.catalog-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.catalog-form small {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.catalog-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 10px !important;
+  align-self: center;
+  min-height: 42px;
+}
+
+.catalog-checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.catalog-form .dialog-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.catalog-table {
+  min-width: 860px;
+}
+
+.catalog-table--fault {
+  min-width: 520px;
+}
+
+.catalog-table td strong,
+.catalog-table td .user-email {
+  display: block;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-status {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: var(--color-danger-dark);
+  background: var(--color-danger-background);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.catalog-status.is-active {
+  color: var(--color-success-dark);
+  background: var(--color-success-background);
+}
+
+@media (max-width: 640px) {
+  .catalog-form {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-form-wrap {
+    padding: 18px 16px;
+  }
+}

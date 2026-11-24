@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { createHash, randomBytes } = require("crypto");
 const authRepository = require("./auth.repository");
+const emailService = require("../notificaciones/email.service");
 
 async function login(correo, contrasena) {
   const normalizedCorreo = correo.trim().toLowerCase();
@@ -26,9 +28,16 @@ async function login(correo, contrasena) {
     throw error;
   }
 
-  const token = jwt.sign({ id: user.id_usuario }, process.env.JWT_SECRET, {
+  const token = jwt.sign(
+    {
+      id: user.id_usuario,
+      ver: Number(user.token_version) || 0,
+    },
+    process.env.JWT_SECRET,
+    {
     expiresIn: process.env.JWT_EXPIRES_IN || "2h",
-  });
+    }
+  );
 
   return {
     token,
@@ -65,6 +74,36 @@ async function changePassword(idUsuario, contrasenaActual, nuevaContrasena) {
   await authRepository.updatePassword(idUsuario, hashedPassword);
 }
 
+async function requestPasswordReset(correo) {
+  const user = await authRepository.findActiveByEmail(correo);
+  if (!user) {
+    return;
+  }
+
+  const token = randomBytes(32).toString("hex");
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  await authRepository.createPasswordResetToken(user.id_usuario, tokenHash);
+
+  try {
+    await emailService.sendPasswordResetEmail({
+      to: user.correo,
+      name: user.nombre,
+      token,
+    });
+  } catch (error) {
+    console.error("Password reset email delivery failed", {
+      userId: user.id_usuario,
+      error: error.message,
+    });
+  }
+}
+
+async function resetPassword(token, nuevaContrasena) {
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
+  await authRepository.resetPasswordByToken(tokenHash, hashedPassword);
+}
+
 async function getProfile(id) {
   const user = await authRepository.findById(id);
 
@@ -87,5 +126,7 @@ async function getProfile(id) {
 module.exports = {
   login,
   changePassword,
-  getProfile
+  requestPasswordReset,
+  resetPassword,
+  getProfile,
 };

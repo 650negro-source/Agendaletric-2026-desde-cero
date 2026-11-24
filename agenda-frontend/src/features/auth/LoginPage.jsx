@@ -2,7 +2,7 @@ import { useState } from 'react'
 import CustomerRegistrationForm from './CustomerRegistrationForm.jsx'
 import './LoginPage.css'
 
-function LoginPage({ error, isSubmitting, onSubmit }) {
+function LoginPage({ error, isSubmitting, onSubmit, onForgotPassword }) {
   const [correo, setCorreo] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [showRegistration, setShowRegistration] = useState(false)
@@ -68,6 +68,13 @@ function LoginPage({ error, isSubmitting, onSubmit }) {
             {isSubmitting ? 'Validando acceso...' : 'Entrar'}
           </button>
         </form>
+        <button
+          className="button button--quiet login-recovery-link"
+          type="button"
+          onClick={onForgotPassword}
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
         <button
           className="button button--quiet registration-link"
           type="button"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import LoginPage from './features/auth/LoginPage.jsx'
+import PasswordRecoveryPage from './features/auth/PasswordRecoveryPage.jsx'
 import PasswordChangeForm from './features/auth/PasswordChangeForm.jsx'
 import ClienteProfilePage from './features/clientes/ClienteProfilePage.jsx'
 import ClientesPage from './features/clientes/ClientesPage.jsx'
@@ -7,6 +8,7 @@ import VehiculosPage from './features/vehiculos/VehiculosPage.jsx'
 import CitasPage from './features/citas/CitasPage.jsx'
 import TecnicosPage from './features/tecnicos/TecnicosPage.jsx'
 import ReportesPage from './features/reportes/ReportesPage.jsx'
+import CatalogosPage from './features/catalogos/CatalogosPage.jsx'
 import { clearSession, getMyProfile, readSession, saveSession, signIn } from './services/authService.js'
 import UsersPage from './features/users/UsersPage.jsx'
 import {
@@ -19,6 +21,12 @@ import './App.css'
 
 function App() {
   const [session, setSession] = useState(() => readSession())
+  const [passwordResetToken, setPasswordResetToken] = useState(
+    () => new URLSearchParams(window.location.hash.slice(1)).get('resetToken')
+      || new URLSearchParams(window.location.search).get('resetToken')
+      || ''
+  )
+  const [isRequestingPasswordReset, setIsRequestingPasswordReset] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [isRestoringSession, setIsRestoringSession] = useState(() => Boolean(session))
@@ -114,12 +122,40 @@ function App() {
     setSession(updatedSession)
   }
 
+  if (passwordResetToken || (!session && isRequestingPasswordReset)) {
+    return (
+      <PasswordRecoveryPage
+        token={passwordResetToken}
+        onBack={() => {
+          setPasswordResetToken('')
+          setIsRequestingPasswordReset(false)
+          const url = new URL(window.location.href)
+          url.searchParams.delete('resetToken')
+          url.hash = ''
+          window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+        }}
+        onResetSuccess={() => {
+          clearSession()
+          setSession(null)
+          const url = new URL(window.location.href)
+          url.searchParams.delete('resetToken')
+          url.hash = ''
+          window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+        }}
+      />
+    )
+  }
+
   if (!session) {
     return (
       <LoginPage
         error={loginError}
         isSubmitting={isSigningIn}
         onSubmit={handleSignIn}
+        onForgotPassword={() => {
+          setLoginError('')
+          setIsRequestingPasswordReset(true)
+        }}
       />
     )
   }
@@ -239,8 +275,18 @@ function App() {
             >
               Reportes técnicos
             </button>
+            <button
+              className={adminSection === 'catalogs' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'catalogs' ? 'page' : undefined}
+              onClick={() => setAdminSection('catalogs')}
+            >
+              Catálogos
+            </button>
           </nav>
-          {adminSection === 'reports' ? (
+          {adminSection === 'catalogs' ? (
+            <CatalogosPage session={session} />
+          ) : adminSection === 'reports' ? (
             <ReportesPage session={session} />
           ) : adminSection === 'technicians' ? (
             <TecnicosPage session={session} />

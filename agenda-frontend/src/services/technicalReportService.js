@@ -41,6 +41,13 @@ export async function requestReportCorrection(token, appointmentId, comentario) 
   })
 }
 
+export async function retryReportNotification(token, appointmentId) {
+  return apiRequest(`/reportes-tecnicos/${appointmentId}/reintentar-notificacion`, {
+    token,
+    method: 'POST',
+  })
+}
+
 export async function downloadReportFile(token, path, filename) {
   const apiPath = path.startsWith('/api/') ? path.slice(4) : path
   const blob = await apiRequest(apiPath, { token, responseType: 'blob' })

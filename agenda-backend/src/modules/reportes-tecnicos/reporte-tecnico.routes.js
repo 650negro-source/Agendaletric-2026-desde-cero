@@ -56,6 +56,12 @@ router.post(
   validateSolicitudCorreccion,
   reporteController.requestCorrectionByCitaId
 );
+router.post(
+  "/:idCita/reintentar-notificacion",
+  authorizeRoles(1, 3),
+  validateReporteId,
+  reporteController.retryNotificationByCitaId
+);
 router.get(
   "/:idCita/pdf",
   authorizeRoles(1, 2, 3),
