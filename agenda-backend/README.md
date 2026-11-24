@@ -143,11 +143,41 @@ agenda-backend/
 - `PATCH /api/users/:id/status` - Cambiar estado del usuario
 - `DELETE /api/users/:id` - Eliminación lógica
 
-### Autenticación
+Las rutas de gestión de usuarios son exclusivas de `SYSTEM_ADMIN`. El técnico no puede consultar ni cambiar el estado de cuentas; sus permisos para cancelar o reprogramar citas se aplican en las rutas propias de citas. La creación desde `/api/users` acepta cuentas de administrador o técnico. Las cuentas de cliente deben crearse mediante el registro de clientes para que también quede creado su perfil.
 
-El módulo de autenticación está disponible en `src/modules/auth` y contempla el login con JWT:
+El sistema impide desactivar, eliminar o cambiar el rol de la última cuenta `SYSTEM_ADMIN` activa.
+
+### Acceso y autenticación
+
+El módulo de autenticación está disponible en `src/modules/auth`:
 
 - `POST /api/auth/login`
+- `PATCH /api/auth/change-password` - Requiere JWT y la contraseña actual.
+- `POST /api/clientes` - Registro público que asigna exclusivamente el rol `CUSTOMER`.
+
+El inicio de sesión permite cinco intentos fallidos por dirección IP cada 15 minutos; la respuesta de credenciales inválidas es genérica. El contador usa memoria del proceso, por lo que un despliegue con varias instancias debe configurar un almacén compartido. Las contraseñas nuevas deben tener entre 10 y 64 caracteres, no incluir espacios y contener mayúscula, minúscula, número y símbolo; también se rechazan algunos patrones comunes. Se comparan exactamente como se reciben y se almacenan con bcrypt. El registro y la creación administrativa requieren confirmar la contraseña. La recuperación de contraseña por correo queda pendiente de configurar un proveedor de correo real.
+
+El campo de correo mantiene el límite actual de 150 caracteres de la base de datos, aunque la guía propone hasta 254; ampliarlo requiere una migración del esquema. Cambiar la contraseña no invalida otros JWT ya emitidos; vencen según `JWT_EXPIRES_IN`.
+
+El frontend conserva el JWT temporalmente en `sessionStorage` para esta etapa de desarrollo. Antes de publicar el sistema, se debe decidir si migrarlo a cookie `HttpOnly`, `Secure` y `SameSite` y configurar la protección CSRF correspondiente.
+
+Los IDs de rol se mantienen: `SYSTEM_ADMIN` (1), `CUSTOMER` (2) y `TECHNICIAN` (3).
+
+Las cuentas existentes conservan sus contraseñas actuales para que puedan iniciar sesión; al cambiarlas deberán cumplir la nueva política.
+
+### Clientes
+
+El registro público crea una cuenta `CUSTOMER` y su perfil en una transacción. La cédula debe tener de 6 a 10 dígitos numéricos y ser única; el celular debe tener 10 dígitos y comenzar por 3. El cliente puede consultar y actualizar su propio perfil, incluida la cédula, siempre que no esté registrada en otra cuenta. Solo `SYSTEM_ADMIN` puede listar, consultar, actualizar, activar, desactivar o dar de baja perfiles de clientes.
+
+- `GET /api/clientes/me` y `PUT /api/clientes/me` - Consultar y actualizar el perfil propio (cliente)
+- `GET /api/clientes` - Listar clientes (administrador)
+- `GET /api/clientes/:id` y `PUT /api/clientes/:id` - Consultar y actualizar un cliente (administrador)
+- `PATCH /api/clientes/:id/status` - Activar o desactivar el acceso (administrador)
+- `DELETE /api/clientes/:id` - Baja lógica: deshabilita la cuenta y conserva sus registros (administrador)
+
+### Compatibilidad de inicio de sesión
+
+La autenticación usa JWT y las rutas protegidas consultan el estado actual de la cuenta en MySQL.
 
 ### Reportes técnicos
 

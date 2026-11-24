@@ -20,19 +20,19 @@ router.use(authenticate);
 router.post( "/", authorizeRoles(1), validateCreateUser, userController.createUser);
 
 // Listar usuarios - Solo administrador
-router.get("/", authorizeRoles(1,3), userController.getUsers);
+router.get("/", authorizeRoles(1), userController.getUsers);
 
 router.get("/me",  userController.getMyProfile);
 
 
 // Consultar usuario por ID - Solo administrador
-router.get("/:id", authorizeRoles(1,3), validateUserId, userController.getUserById);
+router.get("/:id", authorizeRoles(1), validateUserId, userController.getUserById);
 
 // Actualizar usuario - Solo administrador
 router.put("/:id", authorizeRoles(1), validateUserId, validateUpdateUser,userController.updateUser);
 
 // Cambiar estado - Solo administrador
-router.patch("/:id/status", authorizeRoles(1,3), validateUserId, validateStatus, userController.changeUserStatus);
+router.patch("/:id/status", authorizeRoles(1), validateUserId, validateStatus, userController.changeUserStatus);
 
 // Eliminación lógica - Solo administrador
 router.delete("/:id", authorizeRoles(1,), validateUserId, userController.deleteUser);

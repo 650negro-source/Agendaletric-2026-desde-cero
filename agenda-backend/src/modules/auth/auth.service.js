@@ -3,39 +3,29 @@ const jwt = require("jsonwebtoken");
 const authRepository = require("./auth.repository");
 
 async function login(correo, contrasena) {
-  const normalizedCorreo = correo.trim();
+  const normalizedCorreo = correo.trim().toLowerCase();
   const user = await authRepository.findByEmail(normalizedCorreo);
 
-  // Caso 1: Usuario no encontrado
   if (!user) {
-    console.warn("Login rejected: user not found");
-
     const error = new Error("Invalid credentials");
     error.status = 401;
     throw error;
   }
 
-  // Caso 2: Usuario desactivado
   if (user.estado !== 1) {
-    console.warn("Login rejected: inactive user");
-
     const error = new Error("Invalid credentials");
     error.status = 401;
     throw error;
   }
 
-  // Caso 3: Contraseña incorrecta
   const validPassword = await bcrypt.compare(contrasena, user.contrasena);
 
   if (!validPassword) {
-    console.warn("Login rejected: incorrect password");
-
     const error = new Error("Invalid credentials");
     error.status = 401;
     throw error;
   }
 
-  // Caso 4: Autenticación correcta
   const token = jwt.sign({ id: user.id_usuario }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "2h",
   });
@@ -49,6 +39,30 @@ async function login(correo, contrasena) {
       id_rol: user.id_rol_fk,
     },
   };
+}
+
+async function changePassword(idUsuario, contrasenaActual, nuevaContrasena) {
+  const user = await authRepository.findPasswordById(idUsuario);
+  if (!user || user.estado !== 1) {
+    const error = new Error("Invalid or inactive user");
+    error.status = 401;
+    throw error;
+  }
+
+  if (!(await bcrypt.compare(contrasenaActual, user.contrasena))) {
+    const error = new Error("Current password is incorrect");
+    error.status = 400;
+    throw error;
+  }
+
+  if (await bcrypt.compare(nuevaContrasena, user.contrasena)) {
+    const error = new Error("New password must be different");
+    error.status = 400;
+    throw error;
+  }
+
+  const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
+  await authRepository.updatePassword(idUsuario, hashedPassword);
 }
 
 async function getProfile(id) {
@@ -72,5 +86,6 @@ async function getProfile(id) {
 
 module.exports = {
   login,
+  changePassword,
   getProfile
 };

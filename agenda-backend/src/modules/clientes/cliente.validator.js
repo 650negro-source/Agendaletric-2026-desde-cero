@@ -1,3 +1,15 @@
+const {
+  getPasswordError,
+  getPasswordConfirmationError,
+} = require("../../utils/password-policy");
+const {
+  normalizeEmail,
+  normalizePersonName,
+} = require("../../utils/identity-policy");
+
+const identityDocumentPattern = /^\d{6,10}$/;
+const mobilePhonePattern = /^3\d{9}$/;
+
 function normalizeInteger(value) {
   if (value === undefined || value === null || value === "") {
     return undefined;
@@ -20,53 +32,71 @@ function normalizeInteger(value) {
 
 function validateCreateCliente(req, res, next) {
   const body = req.body || {};
-  const { nombre_completo, documento_identidad, telefono, correo, contrasena, direccion } = body;
+  const {
+    nombre_completo,
+    documento_identidad,
+    telefono,
+    correo,
+    contrasena,
+    confirmar_contrasena,
+    direccion,
+  } = body;
+  const nombre = normalizePersonName(nombre_completo);
+  const email = normalizeEmail(correo);
 
-  if (!nombre_completo || !documento_identidad || !telefono || !correo || !contrasena) {
+  if (
+    !nombre_completo ||
+    !documento_identidad ||
+    !telefono ||
+    !correo ||
+    typeof contrasena !== "string" ||
+    typeof confirmar_contrasena !== "string"
+  ) {
     return res.status(400).json({
       message: "Name, identity document, phone, email, and password are required",
     });
   }
 
-  if (typeof nombre_completo !== "string" || nombre_completo.trim().length < 2) {
+  if (!nombre) {
     return res.status(400).json({
-      message: "Full name must contain at least 2 characters",
-    });
-  }
-
-  if (nombre_completo.trim().length > 100) {
-    return res.status(400).json({
-      message: "Full name must not exceed 100 characters",
+      message: "Invalid name",
     });
   }
 
   if (
     typeof documento_identidad !== "string" ||
-    !documento_identidad.trim() ||
-    documento_identidad.trim().length > 50
+    !identityDocumentPattern.test(documento_identidad.trim())
   ) {
     return res.status(400).json({
-      message: "Identity document is required and must not exceed 50 characters",
+      message: "Identity document must contain 6 to 10 digits",
     });
   }
 
-  if (typeof telefono !== "string" || !telefono.trim() || telefono.trim().length > 20) {
+  if (
+    typeof telefono !== "string" ||
+    !mobilePhonePattern.test(telefono.trim())
+  ) {
     return res.status(400).json({
-      message: "Phone is required and must not exceed 20 characters",
+      message: "Mobile phone must contain 10 digits and start with 3",
     });
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (typeof correo !== "string" || correo.trim().length > 150 || !emailRegex.test(correo.trim())) {
+  if (!email) {
     return res.status(400).json({
       message: "Invalid email format",
     });
   }
 
-  if (typeof contrasena !== "string" || contrasena.trim().length < 8) {
-    return res.status(400).json({
-      message: "Password must contain at least 8 characters",
-    });
+  const passwordError = getPasswordError(contrasena);
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError });
+  }
+  const confirmationError = getPasswordConfirmationError(
+    contrasena,
+    confirmar_contrasena
+  );
+  if (confirmationError) {
+    return res.status(400).json({ message: confirmationError });
   }
 
   if (direccion !== undefined && direccion !== null && typeof direccion !== "string") {
@@ -80,12 +110,12 @@ function validateCreateCliente(req, res, next) {
     });
   }
 
-  body.nombre_completo = nombre_completo.trim();
+  body.nombre_completo = nombre;
   body.documento_identidad = documento_identidad.trim();
   body.telefono = telefono.trim();
-  body.correo = correo.trim();
-  body.contrasena = contrasena.trim();
+  body.correo = email;
   body.direccion = typeof direccion === "string" ? direccion.trim() || null : null;
+  delete body.confirmar_contrasena;
   req.body = body;
 
   next();
@@ -94,6 +124,8 @@ function validateCreateCliente(req, res, next) {
 function validateUpdateCliente(req, res, next) {
   const body = req.body || {};
   const { nombre_completo, documento_identidad, telefono, correo, direccion } = body;
+  const nombre = normalizePersonName(nombre_completo);
+  const email = normalizeEmail(correo);
 
   if (!nombre_completo || !documento_identidad || !telefono || !correo) {
     return res.status(400).json({
@@ -101,11 +133,7 @@ function validateUpdateCliente(req, res, next) {
     });
   }
 
-  if (
-    typeof nombre_completo !== "string" ||
-    nombre_completo.trim().length < 2 ||
-    nombre_completo.trim().length > 100
-  ) {
+  if (!nombre) {
     return res.status(400).json({
       message: "Invalid full name",
     });
@@ -113,22 +141,23 @@ function validateUpdateCliente(req, res, next) {
 
   if (
     typeof documento_identidad !== "string" ||
-    !documento_identidad.trim() ||
-    documento_identidad.trim().length > 50
+    !identityDocumentPattern.test(documento_identidad.trim())
   ) {
     return res.status(400).json({
-      message: "Invalid identity document",
+      message: "Identity document must contain 6 to 10 digits",
     });
   }
 
-  if (typeof telefono !== "string" || !telefono.trim() || telefono.trim().length > 20) {
+  if (
+    typeof telefono !== "string" ||
+    !mobilePhonePattern.test(telefono.trim())
+  ) {
     return res.status(400).json({
-      message: "Invalid phone",
+      message: "Mobile phone must contain 10 digits and start with 3",
     });
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (typeof correo !== "string" || correo.trim().length > 150 || !emailRegex.test(correo.trim())) {
+  if (!email) {
     return res.status(400).json({
       message: "Invalid email format",
     });
@@ -145,10 +174,10 @@ function validateUpdateCliente(req, res, next) {
     });
   }
 
-  body.nombre_completo = nombre_completo.trim();
+  body.nombre_completo = nombre;
   body.documento_identidad = documento_identidad.trim();
   body.telefono = telefono.trim();
-  body.correo = correo.trim();
+  body.correo = email;
   body.direccion = typeof direccion === "string" ? direccion.trim() || null : null;
   req.body = body;
 

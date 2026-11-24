@@ -1,7 +1,16 @@
 const bcrypt = require('bcrypt');
 const userRepository = require('./user.repository');
+const CUSTOMER_ROLE_ID = 2;
+const ASSIGNABLE_USER_ROLE_IDS = new Set([1, 3]);
+const assignableRoleError = 'Role cannot be assigned through user management';
+
 async function createUser(userData) {
 const { nombre, correo, contrasena, id_rol } = userData;
+if (!ASSIGNABLE_USER_ROLE_IDS.has(Number(id_rol))) {
+const error = new Error('Only administrator and technician accounts can be created through user management');
+error.status = 400;
+throw error;
+}
 // El correo debe ser único
 const existingUser = await userRepository.findByEmail(correo);
 if (existingUser) {
@@ -24,7 +33,17 @@ correo,
 contrasena: hashedPassword,
 id_rol
 };
-const userId = await userRepository.create(newUser);
+let userId;
+try {
+userId = await userRepository.create(newUser);
+} catch (error) {
+if (error.code === 'ER_DUP_ENTRY') {
+const conflict = new Error('Email is already registered');
+conflict.status = 409;
+throw conflict;
+}
+throw error;
+}
 return {
 id_usuario: userId,
 nombre,
@@ -48,11 +67,25 @@ throw error;
 return user;
 }
 // Actualizar usuario
-async function updateUser(id, userData) {
+async function updateUser(id, userData, actorId) {
 const user = await userRepository.findById(id);
 if (!user) {
 const error = new Error('User not found');
 error.status = 404;
+throw error;
+}
+const currentRoleId = Number(user.id_rol);
+const targetRoleId = Number(userData.id_rol);
+if (Number(id) === Number(actorId) && currentRoleId !== targetRoleId) {
+const error = new Error('You cannot change your own role; ask another administrator');
+error.status = 409;
+throw error;
+}
+const existingCustomerRole = currentRoleId === CUSTOMER_ROLE_ID &&
+targetRoleId === CUSTOMER_ROLE_ID;
+if (!ASSIGNABLE_USER_ROLE_IDS.has(targetRoleId) && !existingCustomerRole) {
+const error = new Error(assignableRoleError);
+error.status = 400;
 throw error;
 }
 const existingEmail =
@@ -72,7 +105,16 @@ const error = new Error('Role does not exist');
 error.status = 400;
 throw error;
 }
+try {
 await userRepository.update(id, userData);
+} catch (error) {
+if (error.code === 'ER_DUP_ENTRY') {
+const conflict = new Error('Email is already registered');
+conflict.status = 409;
+throw conflict;
+}
+throw error;
+}
 return await userRepository.findById(id);
 }
 // Cambiar estado

@@ -1,4 +1,77 @@
 const pool = require('../../config/database');
+const SYSTEM_ADMIN_ROLE_ID = 1;
+
+function createError(message, status) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+async function runAdminProtectedMutation(id, removesAdmin, statement, params) {
+  const connection = await pool.getConnection();
+  let transactionStarted = false;
+
+  try {
+    await connection.beginTransaction();
+    transactionStarted = true;
+
+    const [roles] = await connection.execute(
+      'SELECT id_rol FROM rol WHERE id_rol = ? FOR UPDATE',
+      [SYSTEM_ADMIN_ROLE_ID]
+    );
+    if (!roles[0]) {
+      throw createError('System administrator role is not configured', 500);
+    }
+
+    const [users] = await connection.execute(
+      `SELECT id_rol_fk, estado
+       FROM usuario
+       WHERE id_usuario = ?
+         AND deleted_at IS NULL
+       FOR UPDATE`,
+      [id]
+    );
+    const target = users[0];
+    if (!target) {
+      throw createError('User not found', 404);
+    }
+
+    if (
+      removesAdmin &&
+      Number(target.id_rol_fk) === SYSTEM_ADMIN_ROLE_ID &&
+      Number(target.estado) === 1
+    ) {
+      const [rows] = await connection.execute(
+        `SELECT COUNT(*) AS remaining
+         FROM usuario
+         WHERE id_rol_fk = ?
+           AND estado = 1
+           AND deleted_at IS NULL
+           AND id_usuario <> ?`,
+        [SYSTEM_ADMIN_ROLE_ID, id]
+      );
+      if (Number(rows[0].remaining) === 0) {
+        throw createError(
+          'At least one active system administrator must remain',
+          409
+        );
+      }
+    }
+
+    const [result] = await connection.execute(statement, params);
+    await connection.commit();
+    transactionStarted = false;
+    return result.affectedRows;
+  } catch (error) {
+    if (transactionStarted) {
+      await connection.rollback();
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 // Buscar usuario por correo
 async function findByEmail(email) {
 const [rows] = await pool.execute(
@@ -66,37 +139,40 @@ return rows[0];
 // Actualizar usuario
 async function update(id, user) {
 const { nombre, correo, id_rol } = user;
-const [result] = await pool.execute(
-`UPDATE usuario
-SET nombre = ?, correo = ?, id_rol_fk = ?
-WHERE id_usuario = ?
-AND deleted_at IS NULL`,
-[nombre, correo, id_rol, id]
+return runAdminProtectedMutation(
+  id,
+  Number(id_rol) !== SYSTEM_ADMIN_ROLE_ID,
+  `UPDATE usuario
+   SET nombre = ?, correo = ?, id_rol_fk = ?
+   WHERE id_usuario = ?
+     AND deleted_at IS NULL`,
+  [nombre, correo, id_rol, id]
 );
-return result.affectedRows;
 }
 // Cambiar estado
 async function updateStatus(id, estado) {
-const [result] = await pool.execute(
-`UPDATE usuario
-SET estado = ?
-WHERE id_usuario = ?
-AND deleted_at IS NULL`,
-[estado, id]
+return runAdminProtectedMutation(
+  id,
+  Number(estado) === 0,
+  `UPDATE usuario
+   SET estado = ?
+   WHERE id_usuario = ?
+     AND deleted_at IS NULL`,
+  [estado, id]
 );
-return result.affectedRows;
 }
 // Eliminación lógica
 async function softDelete(id) {
-const [result] = await pool.execute(
-`UPDATE usuario
-SET deleted_at = NOW(),
-estado = 0
-WHERE id_usuario = ?
-AND deleted_at IS NULL`,
-[id]
+return runAdminProtectedMutation(
+  id,
+  true,
+  `UPDATE usuario
+   SET deleted_at = NOW(),
+       estado = 0
+   WHERE id_usuario = ?
+     AND deleted_at IS NULL`,
+  [id]
 );
-return result.affectedRows;
 }
 module.exports = {
 findByEmail,
