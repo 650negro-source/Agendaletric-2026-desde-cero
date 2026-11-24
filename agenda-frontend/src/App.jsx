@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import LoginPage from './features/auth/LoginPage.jsx'
+import PasswordChangeForm from './features/auth/PasswordChangeForm.jsx'
+import ClienteProfilePage from './features/clientes/ClienteProfilePage.jsx'
+import ClientesPage from './features/clientes/ClientesPage.jsx'
 import { clearSession, getMyProfile, readSession, saveSession, signIn } from './services/authService.js'
 import UsersPage from './features/users/UsersPage.jsx'
+import { ADMIN_ROLE_ID, CUSTOMER_ROLE_ID, getRoleLabel } from './shared/userRoles.js'
 import './App.css'
 
 function App() {
@@ -11,6 +15,9 @@ function App() {
   const [isRestoringSession, setIsRestoringSession] = useState(() => Boolean(session))
   const [sessionError, setSessionError] = useState('')
   const [restoreAttempt, setRestoreAttempt] = useState(0)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [adminSection, setAdminSection] = useState('users')
 
   useEffect(() => {
     const token = session?.token
@@ -48,6 +55,8 @@ function App() {
     function handleUnauthorized() {
       clearSession()
       setSession(null)
+      setIsChangingPassword(false)
+      setPasswordMessage('')
       setLoginError('La sesión venció. Inicia sesión nuevamente.')
     }
 
@@ -76,7 +85,22 @@ function App() {
   function handleSignOut() {
     clearSession()
     setSessionError('')
+    setPasswordMessage('')
+    setIsChangingPassword(false)
     setSession(null)
+  }
+
+  function handleCustomerProfileUpdated(customer) {
+    const updatedSession = {
+      ...session,
+      user: {
+        ...session.user,
+        nombre: customer.nombre_completo,
+        correo: customer.correo,
+      },
+    }
+    saveSession(updatedSession)
+    setSession(updatedSession)
   }
 
   if (!session) {
@@ -120,6 +144,9 @@ function App() {
     )
   }
 
+  const roleId = Number(session.user.id_rol)
+  const roleLabel = getRoleLabel(roleId)
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -127,17 +154,79 @@ function App() {
           <span className="app-brand-mark" aria-hidden="true">A</span>
           <span>
             <strong>AgendaLetric</strong>
-            <small>Administración del sistema</small>
+            <small>{roleLabel}</small>
           </span>
         </a>
         <div className="app-account">
           <span className="app-account-name">{session.user.nombre}</span>
-          <button className="button button--quiet" type="button" onClick={handleSignOut}>
-            Cerrar sesión
-          </button>
+          <div className="app-account-actions">
+            <button
+              className="button button--quiet"
+              type="button"
+              onClick={() => {
+                setPasswordMessage('')
+                setIsChangingPassword(true)
+              }}
+            >
+              Cambiar contraseña
+            </button>
+            <button className="button button--quiet" type="button" onClick={handleSignOut}>
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </header>
-      <UsersPage session={session} />
+      {passwordMessage && <p className="password-notice" role="status">{passwordMessage}</p>}
+      {roleId === ADMIN_ROLE_ID ? (
+        <>
+          <nav className="app-navigation" aria-label="Módulos de administración">
+            <button
+              className={adminSection === 'users' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'users' ? 'page' : undefined}
+              onClick={() => setAdminSection('users')}
+            >
+              Usuarios
+            </button>
+            <button
+              className={adminSection === 'clients' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'clients' ? 'page' : undefined}
+              onClick={() => setAdminSection('clients')}
+            >
+              Clientes
+            </button>
+          </nav>
+          {adminSection === 'clients' ? (
+            <ClientesPage session={session} />
+          ) : (
+            <UsersPage session={session} />
+          )}
+        </>
+      ) : roleId === CUSTOMER_ROLE_ID ? (
+        <ClienteProfilePage
+          session={session}
+          onProfileUpdated={handleCustomerProfileUpdated}
+        />
+      ) : (
+        <main className="users-page">
+          <section className="notice-card">
+            <p className="eyebrow">{roleLabel}</p>
+            <h1>Hola, {session.user.nombre}</h1>
+            <p>Tu cuenta está activa. Los módulos correspondientes a tu rol se habilitarán en las siguientes etapas.</p>
+          </section>
+        </main>
+      )}
+      {isChangingPassword && (
+        <PasswordChangeForm
+          token={session.token}
+          onCancel={() => setIsChangingPassword(false)}
+          onSuccess={() => {
+            setIsChangingPassword(false)
+            setPasswordMessage('La contraseña se actualizó correctamente.')
+          }}
+        />
+      )}
     </div>
   )
 }

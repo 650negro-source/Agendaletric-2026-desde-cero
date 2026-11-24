@@ -2,6 +2,7 @@ function ConfirmDialog({
   title,
   message,
   confirmLabel,
+  confirmingLabel = 'Eliminando...',
   isConfirming,
   onCancel,
   onConfirm,
@@ -16,7 +17,7 @@ function ConfirmDialog({
             Cancelar
           </button>
           <button className="button button--danger" type="button" onClick={onConfirm} disabled={isConfirming}>
-            {isConfirming ? 'Eliminando...' : confirmLabel}
+            {isConfirming ? confirmingLabel : confirmLabel}
           </button>
         </div>
       </section>

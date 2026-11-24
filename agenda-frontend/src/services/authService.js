@@ -27,6 +27,14 @@ export async function signIn({ correo, contrasena }) {
   }
 }
 
+export async function changePassword(token, passwordData) {
+  return apiRequest('/auth/change-password', {
+    token,
+    method: 'PATCH',
+    body: passwordData,
+  })
+}
+
 export async function getMyProfile(token) {
   const response = await apiRequest('/users/me', { token })
   const profile = response?.data?.user ?? response?.data ?? response?.user

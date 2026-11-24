@@ -9,7 +9,7 @@
 }
 
 .login-card {
-  width: min(100%, 420px);
+  width: min(100%, 460px);
   padding: 40px;
   border: 1px solid var(--color-border);
   border-radius: 20px;
@@ -92,6 +92,16 @@
 .login-submit {
   width: 100%;
   margin-top: 4px;
+}
+
+.registration-link {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.customer-registration-form {
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
 @media (max-width: 480px) {

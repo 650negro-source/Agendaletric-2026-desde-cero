@@ -1,9 +1,28 @@
 import { useState } from 'react'
+import CustomerRegistrationForm from './CustomerRegistrationForm.jsx'
 import './LoginPage.css'
 
 function LoginPage({ error, isSubmitting, onSubmit }) {
   const [correo, setCorreo] = useState('')
   const [contrasena, setContrasena] = useState('')
+  const [showRegistration, setShowRegistration] = useState(false)
+  const [registrationMessage, setRegistrationMessage] = useState('')
+
+  if (showRegistration) {
+    return (
+      <main className="login-page">
+        <CustomerRegistrationForm
+          onCancel={() => setShowRegistration(false)}
+          onSuccess={(registeredEmail) => {
+            setCorreo(registeredEmail)
+            setContrasena('')
+            setRegistrationMessage('Cuenta creada. Ya puedes iniciar sesión.')
+            setShowRegistration(false)
+          }}
+        />
+      </main>
+    )
+  }
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -17,7 +36,7 @@ function LoginPage({ error, isSubmitting, onSubmit }) {
         <p className="eyebrow">AgendaLetric</p>
         <h1 id="login-title">Iniciar sesión</h1>
         <p className="login-description">
-          Ingresa con tu cuenta para administrar los usuarios del sistema.
+          Ingresa para continuar según los permisos de tu cuenta.
         </p>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -41,11 +60,24 @@ function LoginPage({ error, isSubmitting, onSubmit }) {
               required
             />
           </label>
+          {registrationMessage && (
+            <p className="feedback feedback--success" role="status">{registrationMessage}</p>
+          )}
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="button button--primary login-submit" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Validando acceso...' : 'Entrar'}
           </button>
         </form>
+        <button
+          className="button button--quiet registration-link"
+          type="button"
+          onClick={() => {
+            setRegistrationMessage('')
+            setShowRegistration(true)
+          }}
+        >
+          Crear cuenta de cliente
+        </button>
       </section>
     </main>
   )

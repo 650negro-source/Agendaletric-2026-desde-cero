@@ -1,14 +1,18 @@
 import { useState } from 'react'
-import { USER_ROLES } from '../../shared/userRoles.js'
+import { getAssignableUserRoles } from '../../shared/userRoles.js'
+import { getPasswordValidationMessage } from '../../shared/passwordPolicy.js'
 
 function UserForm({ mode, user, onCancel, onSubmit }) {
   const [nombre, setNombre] = useState(user?.nombre || '')
   const [correo, setCorreo] = useState(user?.correo || '')
   const [idRol, setIdRol] = useState(String(user?.id_rol ?? ''))
   const [contrasena, setContrasena] = useState('')
+  const [confirmarContrasena, setConfirmarContrasena] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isCreating = mode === 'create'
+  const availableRoles = getAssignableUserRoles(user?.id_rol)
+  const isExistingCustomer = !isCreating && Number(user?.id_rol) === 2
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -22,9 +26,16 @@ function UserForm({ mode, user, onCancel, onSubmit }) {
       setError('Selecciona un rol para el usuario.')
       return
     }
-    if (isCreating && contrasena.trim().length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.')
-      return
+    if (isCreating) {
+      const passwordError = getPasswordValidationMessage(contrasena)
+      if (passwordError) {
+        setError(passwordError)
+        return
+      }
+      if (contrasena !== confirmarContrasena) {
+        setError('Las contraseñas no coinciden.')
+        return
+      }
     }
 
     const userData = {
@@ -35,6 +46,7 @@ function UserForm({ mode, user, onCancel, onSubmit }) {
 
     if (isCreating) {
       userData.contrasena = contrasena
+      userData.confirmar_contrasena = confirmarContrasena
     }
 
     setIsSubmitting(true)
@@ -65,6 +77,7 @@ function UserForm({ mode, user, onCancel, onSubmit }) {
             Nombre completo
             <input
               autoComplete="name"
+              maxLength="60"
               minLength="2"
               value={nombre}
               onChange={(event) => setNombre(event.target.value)}
@@ -75,6 +88,7 @@ function UserForm({ mode, user, onCancel, onSubmit }) {
             Correo electrónico
             <input
               autoComplete="email"
+              maxLength="150"
               type="email"
               value={correo}
               onChange={(event) => setCorreo(event.target.value)}
@@ -83,26 +97,50 @@ function UserForm({ mode, user, onCancel, onSubmit }) {
           </label>
           <label>
             Rol
-            <select value={idRol} onChange={(event) => setIdRol(event.target.value)} required>
+            <select
+              value={idRol}
+              onChange={(event) => setIdRol(event.target.value)}
+              disabled={isExistingCustomer}
+              required
+            >
               <option value="">Selecciona un rol</option>
-              {USER_ROLES.map((role) => (
+              {availableRoles.map((role) => (
                 <option key={role.id} value={role.id}>{role.name}</option>
               ))}
             </select>
+            {isExistingCustomer && (
+              <small>El rol de cliente se conserva junto con su perfil de cliente.</small>
+            )}
           </label>
           {isCreating && (
-            <label>
-              Contraseña inicial
-              <input
-                autoComplete="new-password"
-                minLength="8"
-                type="password"
-                value={contrasena}
-                onChange={(event) => setContrasena(event.target.value)}
-                required
-              />
-              <small>Debe tener al menos 8 caracteres. El backend la almacena cifrada.</small>
-            </label>
+            <>
+              <label>
+                Contraseña inicial
+                <input
+                  autoComplete="new-password"
+                  maxLength="64"
+                  type="password"
+                  value={contrasena}
+                  onChange={(event) => setContrasena(event.target.value)}
+                  required
+                />
+                <small>
+                  Entre 10 y 64 caracteres, sin espacios, con mayúscula,
+                  minúscula, número y símbolo.
+                </small>
+              </label>
+              <label>
+                Confirmar contraseña
+                <input
+                  autoComplete="new-password"
+                  maxLength="64"
+                  type="password"
+                  value={confirmarContrasena}
+                  onChange={(event) => setConfirmarContrasena(event.target.value)}
+                  required
+                />
+              </label>
+            </>
           )}
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="dialog-actions">
