@@ -1,5 +1,13 @@
 const pool = require("../../config/database");
 
+const vehicleSelect = `SELECT v.id_vehiculo, v.placa, v.marca, v.modelo, v.anio,
+                              v.color, v.tipo_vehiculo, v.tipo_energia, v.estado,
+                              c.id_cliente, u.nombre AS cliente_nombre,
+                              u.correo AS cliente_correo
+                       FROM vehiculo v
+                       INNER JOIN cliente c ON c.id_cliente = v.id_cliente
+                       INNER JOIN usuario u ON u.id_usuario = c.id_usuario`;
+
 async function findClienteById(idCliente) {
   const [rows] = await pool.execute(
     `SELECT id_cliente
@@ -28,9 +36,8 @@ async function findClienteByUserId(idUsuario) {
 
 async function findAll() {
   const [rows] = await pool.execute(
-    `SELECT id_vehiculo, placa, marca, modelo, anio, color, id_cliente
-     FROM vehiculo
-     ORDER BY id_vehiculo`
+    `${vehicleSelect}
+     ORDER BY v.id_vehiculo`
   );
 
   return rows;
@@ -38,10 +45,9 @@ async function findAll() {
 
 async function findAllByClienteId(idCliente) {
   const [rows] = await pool.execute(
-    `SELECT id_vehiculo, placa, marca, modelo, anio, color, id_cliente
-     FROM vehiculo
-     WHERE id_cliente = ?
-     ORDER BY id_vehiculo`,
+    `${vehicleSelect}
+     WHERE v.id_cliente = ?
+     ORDER BY v.id_vehiculo`,
     [idCliente]
   );
 
@@ -50,9 +56,8 @@ async function findAllByClienteId(idCliente) {
 
 async function findById(id) {
   const [rows] = await pool.execute(
-    `SELECT id_vehiculo, placa, marca, modelo, anio, color, id_cliente
-     FROM vehiculo
-     WHERE id_vehiculo = ?`,
+    `${vehicleSelect}
+     WHERE v.id_vehiculo = ?`,
     [id]
   );
 
@@ -61,10 +66,9 @@ async function findById(id) {
 
 async function findByIdAndClienteId(id, idCliente) {
   const [rows] = await pool.execute(
-    `SELECT id_vehiculo, placa, marca, modelo, anio, color, id_cliente
-     FROM vehiculo
-     WHERE id_vehiculo = ?
-     AND id_cliente = ?`,
+    `${vehicleSelect}
+     WHERE v.id_vehiculo = ?
+       AND v.id_cliente = ?`,
     [id, idCliente]
   );
 
@@ -72,26 +76,119 @@ async function findByIdAndClienteId(id, idCliente) {
 }
 
 async function create(vehiculo) {
-  const { placa, marca, modelo, anio, color, id_cliente } = vehiculo;
+  const {
+    placa,
+    marca,
+    modelo,
+    anio,
+    color,
+    tipo_vehiculo,
+    tipo_energia,
+    id_cliente,
+  } = vehiculo;
   const [result] = await pool.execute(
-    `INSERT INTO vehiculo (placa, marca, modelo, anio, color, id_cliente)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [placa, marca, modelo, anio, color, id_cliente]
+    `INSERT INTO vehiculo
+       (placa, marca, modelo, anio, color, tipo_vehiculo, tipo_energia, id_cliente)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [placa, marca, modelo, anio, color, tipo_vehiculo, tipo_energia, id_cliente]
   );
 
   return result.insertId;
 }
 
 async function update(id, vehiculo) {
-  const { placa, marca, modelo, anio, color } = vehiculo;
-  const [result] = await pool.execute(
-    `UPDATE vehiculo
-     SET placa = ?, marca = ?, modelo = ?, anio = ?, color = ?
-     WHERE id_vehiculo = ?`,
-    [placa, marca, modelo, anio, color, id]
-  );
+  const { placa, marca, modelo, anio, color, tipo_vehiculo, tipo_energia } = vehiculo;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [vehicles] = await connection.execute(
+      `SELECT placa
+       FROM vehiculo
+       WHERE id_vehiculo = ?
+       FOR UPDATE`,
+      [id]
+    );
+    if (vehicles.length === 0) {
+      await connection.rollback();
+      return { notFound: true };
+    }
 
-  return result.affectedRows;
+    if (vehicles[0].placa !== placa) {
+      const [appointments] = await connection.execute(
+        `SELECT 1
+         FROM cita
+         WHERE id_vehiculo = ?
+         LIMIT 1`,
+        [id]
+      );
+      if (appointments.length > 0) {
+        await connection.rollback();
+        return { plateChangeBlocked: true };
+      }
+    }
+
+    await connection.execute(
+      `UPDATE vehiculo
+       SET placa = ?, marca = ?, modelo = ?, anio = ?, color = ?,
+           tipo_vehiculo = ?, tipo_energia = ?
+       WHERE id_vehiculo = ?`,
+      [placa, marca, modelo, anio, color, tipo_vehiculo, tipo_energia, id]
+    );
+    await connection.commit();
+    return { updated: true };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+async function updateStatus(id, estado) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [vehicles] = await connection.execute(
+      `SELECT id_vehiculo
+       FROM vehiculo
+       WHERE id_vehiculo = ?
+       FOR UPDATE`,
+      [id]
+    );
+    if (vehicles.length === 0) {
+      await connection.rollback();
+      return { notFound: true };
+    }
+
+    if (estado === 0) {
+      const [appointments] = await connection.execute(
+        `SELECT 1
+         FROM cita
+         WHERE id_vehiculo = ?
+           AND estado IN ('BORRADOR', 'PROGRAMADA', 'VALIDADA', 'EN_PROCESO')
+         LIMIT 1`,
+        [id]
+      );
+      if (appointments.length > 0) {
+        await connection.rollback();
+        return { activeAppointments: true };
+      }
+    }
+
+    await connection.execute(
+      `UPDATE vehiculo
+       SET estado = ?
+       WHERE id_vehiculo = ?`,
+      [estado, id]
+    );
+    await connection.commit();
+    return { updated: true };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 module.exports = {
@@ -103,4 +200,5 @@ module.exports = {
   findByIdAndClienteId,
   create,
   update,
+  updateStatus,
 };

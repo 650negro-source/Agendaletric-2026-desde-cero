@@ -54,9 +54,27 @@ async function updateVehiculo(req, res, next) {
   }
 }
 
+async function changeVehiculoStatus(req, res, next) {
+  try {
+    const vehiculo = await vehiculoService.changeVehiculoStatus(
+      req.params.id,
+      req.body.estado,
+      req.user
+    );
+
+    return res.status(200).json({
+      message: "Vehicle status updated successfully",
+      data: vehiculo,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createVehiculo,
   getVehiculos,
   getVehiculoById,
   updateVehiculo,
+  changeVehiculoStatus,
 };

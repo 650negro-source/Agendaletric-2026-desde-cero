@@ -25,6 +25,21 @@ async function getCitas(req, res, next) {
   }
 }
 
+async function getDisponibilidad(req, res, next) {
+  try {
+    const horarios = await citaService.getDisponibilidad(
+      req.user,
+      req.availabilityQuery
+    );
+
+    return res.status(200).json({
+      data: horarios,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function getCitaById(req, res, next) {
   try {
     const cita = await citaService.getCitaById(req.params.id, req.user);
@@ -143,6 +158,7 @@ async function reprogramarCita(req, res, next) {
 module.exports = {
   createCita,
   getCitas,
+  getDisponibilidad,
   getCitaById,
   getHistorial,
   validarCita,

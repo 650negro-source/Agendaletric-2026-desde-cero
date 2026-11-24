@@ -3,6 +3,8 @@ import LoginPage from './features/auth/LoginPage.jsx'
 import PasswordChangeForm from './features/auth/PasswordChangeForm.jsx'
 import ClienteProfilePage from './features/clientes/ClienteProfilePage.jsx'
 import ClientesPage from './features/clientes/ClientesPage.jsx'
+import VehiculosPage from './features/vehiculos/VehiculosPage.jsx'
+import CitasPage from './features/citas/CitasPage.jsx'
 import { clearSession, getMyProfile, readSession, saveSession, signIn } from './services/authService.js'
 import UsersPage from './features/users/UsersPage.jsx'
 import { ADMIN_ROLE_ID, CUSTOMER_ROLE_ID, getRoleLabel } from './shared/userRoles.js'
@@ -18,6 +20,7 @@ function App() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
   const [adminSection, setAdminSection] = useState('users')
+  const [customerSection, setCustomerSection] = useState('profile')
 
   useEffect(() => {
     const token = session?.token
@@ -196,26 +199,74 @@ function App() {
             >
               Clientes
             </button>
+            <button
+              className={adminSection === 'vehicles' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'vehicles' ? 'page' : undefined}
+              onClick={() => setAdminSection('vehicles')}
+            >
+              Vehículos
+            </button>
+            <button
+              className={adminSection === 'appointments' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'appointments' ? 'page' : undefined}
+              onClick={() => setAdminSection('appointments')}
+            >
+              Citas
+            </button>
           </nav>
-          {adminSection === 'clients' ? (
+          {adminSection === 'appointments' ? (
+            <CitasPage session={session} />
+          ) : adminSection === 'vehicles' ? (
+            <VehiculosPage session={session} />
+          ) : adminSection === 'clients' ? (
             <ClientesPage session={session} />
           ) : (
             <UsersPage session={session} />
           )}
         </>
       ) : roleId === CUSTOMER_ROLE_ID ? (
-        <ClienteProfilePage
-          session={session}
-          onProfileUpdated={handleCustomerProfileUpdated}
-        />
+        <>
+          <nav className="app-navigation" aria-label="Módulos de cliente">
+            <button
+              className={customerSection === 'profile' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={customerSection === 'profile' ? 'page' : undefined}
+              onClick={() => setCustomerSection('profile')}
+            >
+              Mi perfil
+            </button>
+            <button
+              className={customerSection === 'vehicles' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={customerSection === 'vehicles' ? 'page' : undefined}
+              onClick={() => setCustomerSection('vehicles')}
+            >
+              Mis vehículos
+            </button>
+            <button
+              className={customerSection === 'appointments' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={customerSection === 'appointments' ? 'page' : undefined}
+              onClick={() => setCustomerSection('appointments')}
+            >
+              Mis citas
+            </button>
+          </nav>
+          {customerSection === 'appointments' ? (
+            <CitasPage session={session} />
+          ) : customerSection === 'vehicles' ? (
+            <VehiculosPage session={session} />
+          ) : (
+            <ClienteProfilePage
+              session={session}
+              onProfileUpdated={handleCustomerProfileUpdated}
+            />
+          )}
+        </>
       ) : (
-        <main className="users-page">
-          <section className="notice-card">
-            <p className="eyebrow">{roleLabel}</p>
-            <h1>Hola, {session.user.nombre}</h1>
-            <p>Tu cuenta está activa. Los módulos correspondientes a tu rol se habilitarán en las siguientes etapas.</p>
-          </section>
-        </main>
+        <CitasPage session={session} />
       )}
       {isChangingPassword && (
         <PasswordChangeForm

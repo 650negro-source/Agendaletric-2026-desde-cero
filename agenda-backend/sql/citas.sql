@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS cita (
     id_usuario_tecnico INT NOT NULL,
     fecha_programada DATE NOT NULL,
     hora_programada TIME NOT NULL,
+    duracion_minutos INT NULL,
     estado ENUM(
         'BORRADOR',
         'PROGRAMADA',

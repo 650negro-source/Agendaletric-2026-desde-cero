@@ -71,6 +71,7 @@
 
 .app-navigation {
   display: flex;
+  flex-wrap: wrap;
   width: min(100% - 48px, 1180px);
   gap: 8px;
   margin: 20px auto 0;

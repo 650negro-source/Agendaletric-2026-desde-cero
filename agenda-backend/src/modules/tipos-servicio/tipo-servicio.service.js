@@ -25,6 +25,7 @@ async function create(tipoServicioData) {
       nombre: tipoServicioData.nombre,
       descripcion: tipoServicioData.descripcion ?? null,
       requiere_detalle: tipoServicioData.requiere_detalle ?? 0,
+      duracion_minutos: tipoServicioData.duracion_minutos ?? null,
     });
     return tipoServicioRepository.findById(id);
   } catch (error) {
@@ -47,6 +48,10 @@ async function update(id, tipoServicioData) {
       tipoServicioData.requiere_detalle === undefined
         ? current.requiere_detalle
         : tipoServicioData.requiere_detalle,
+    duracion_minutos:
+      tipoServicioData.duracion_minutos === undefined
+        ? current.duracion_minutos
+        : tipoServicioData.duracion_minutos,
   };
 
   try {

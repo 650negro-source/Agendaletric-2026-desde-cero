@@ -33,6 +33,7 @@ function validateTipoServicioData(req, res, next) {
   const nombre = typeof body.nombre === "string" ? body.nombre.trim() : "";
   const descripcion = body.descripcion;
   const requiereDetalle = body.requiere_detalle;
+  const duracionMinutos = normalizeInteger(body.duracion_minutos);
 
   if (!nombre || nombre.length > 100) {
     return res.status(400).json({
@@ -61,6 +62,20 @@ function validateTipoServicioData(req, res, next) {
       message: "The requires-detail value must be true or false",
     });
   }
+  if (
+    body.duracion_minutos !== undefined &&
+    body.duracion_minutos !== null &&
+    (
+      duracionMinutos === undefined ||
+      duracionMinutos < 60 ||
+      duracionMinutos > 360 ||
+      duracionMinutos % 60 !== 0
+    )
+  ) {
+    return res.status(400).json({
+      message: "Service duration must be from 60 to 360 minutes in 60-minute increments",
+    });
+  }
 
   req.body = {
     nombre,
@@ -76,6 +91,9 @@ function validateTipoServicioData(req, res, next) {
               ? 1
               : 0,
         }
+      : {}),
+    ...(body.duracion_minutos !== undefined
+      ? { duracion_minutos: body.duracion_minutos === null ? null : duracionMinutos }
       : {}),
   };
   next();

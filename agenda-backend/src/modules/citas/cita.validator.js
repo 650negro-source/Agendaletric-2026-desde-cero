@@ -119,6 +119,31 @@ function validateReprogramCita(req, res, next) {
   next();
 }
 
+function validateAvailabilityQuery(req, res, next) {
+  const query = req.query || {};
+  const idTipoServicio = normalizeInteger(query.id_tipo_servicio);
+  const idCita =
+    query.id_cita === undefined ? undefined : normalizeInteger(query.id_cita);
+
+  if (
+    !isValidDate(query.fecha) ||
+    idTipoServicio === undefined ||
+    idTipoServicio <= 0 ||
+    (query.id_cita !== undefined && (idCita === undefined || idCita <= 0))
+  ) {
+    return res.status(400).json({
+      message: "A valid date and service type are required",
+    });
+  }
+
+  req.availabilityQuery = {
+    fecha: query.fecha,
+    id_tipo_servicio: idTipoServicio,
+    ...(idCita === undefined ? {} : { id_cita: idCita }),
+  };
+  next();
+}
+
 function validateCitaId(req, res, next) {
   const id = normalizeInteger(req.params.id);
 
@@ -187,6 +212,7 @@ function validateFinalizeCita(req, res, next) {
 module.exports = {
   validateCreateCita,
   validateReprogramCita,
+  validateAvailabilityQuery,
   validateCitaId,
   validateObservaciones,
   validateFinalizeCita,

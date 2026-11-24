@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS tipo_servicio (
     descripcion VARCHAR(255) NULL,
     estado TINYINT NOT NULL DEFAULT 1,
     requiere_detalle TINYINT NOT NULL DEFAULT 0,
+    duracion_minutos INT NULL,
 
     PRIMARY KEY (id_tipo_servicio),
     UNIQUE KEY uq_tipo_servicio_nombre (nombre)

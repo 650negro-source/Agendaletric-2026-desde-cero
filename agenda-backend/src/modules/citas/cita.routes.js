@@ -6,6 +6,7 @@ const citaController = require("./cita.controller");
 const {
   validateCreateCita,
   validateReprogramCita,
+  validateAvailabilityQuery,
   validateCitaId,
   validateObservaciones,
   validateFinalizeCita,
@@ -17,6 +18,12 @@ router.use(authenticate);
 
 router.post("/", authorizeRoles(2), validateCreateCita, citaController.createCita);
 router.get("/", authorizeRoles(1, 2, 3), citaController.getCitas);
+router.get(
+  "/disponibilidad",
+  authorizeRoles(1, 2, 3),
+  validateAvailabilityQuery,
+  citaController.getDisponibilidad
+);
 router.get("/:id/historial", authorizeRoles(1, 2, 3), validateCitaId, citaController.getHistorial);
 router.get("/:id", authorizeRoles(1, 2, 3), validateCitaId, citaController.getCitaById);
 router.patch("/:id/validar", authorizeRoles(1, 3), validateCitaId, validateObservaciones, citaController.validarCita);

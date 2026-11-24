@@ -175,6 +175,32 @@ El registro público crea una cuenta `CUSTOMER` y su perfil en una transacción.
 - `PATCH /api/clientes/:id/status` - Activar o desactivar el acceso (administrador)
 - `DELETE /api/clientes/:id` - Baja lógica: deshabilita la cuenta y conserva sus registros (administrador)
 
+### Vehículos
+
+Los clientes pueden registrar y administrar únicamente los vehículos asociados a su propio perfil. Administración puede consultar y gestionar los vehículos de cualquier cliente, y debe indicar el cliente al crear uno. Los técnicos no tienen acceso a estas rutas. Las placas se normalizan a mayúscula, deben usar el formato colombiano de automóvil (`AAA999`) y son únicas. Se admiten automóvil, camioneta, camión u otro vehículo terrestre; las fuentes de energía son gasolina, diésel, híbrido y eléctrico.
+
+- `POST /api/vehiculos` - Registrar vehículo (cliente autenticado; administración debe enviar `id_cliente`)
+- `GET /api/vehiculos` - Listar vehículos propios (cliente) o todos (administrador)
+- `GET /api/vehiculos/:id` y `PUT /api/vehiculos/:id` - Consultar y actualizar un vehículo propio (cliente) o cualquiera (administrador)
+- `PATCH /api/vehiculos/:id/status` - Activar o dar de baja lógicamente un vehículo
+
+La baja conserva las citas anteriores y bloquea el uso del vehículo en citas nuevas; no se permite desactivarlo mientras tenga una cita activa. Si el vehículo ya tiene citas, no se puede cambiar su placa porque estas muestran la placa actual del registro. Para reemplazarlo, registra el vehículo nuevo y da de baja el anterior. El propietario no se cambia al editar un vehículo.
+
+Para una instalación nueva, `sql/vehiculo.sql` crea la tabla con las columnas actuales. Si la tabla ya existe, revisa y resuelve primero placas repetidas o con formato distinto a `AAA999`:
+
+```sql
+SELECT UPPER(TRIM(placa)) AS placa_normalizada, COUNT(*) AS cantidad
+FROM vehiculo
+GROUP BY UPPER(TRIM(placa))
+HAVING COUNT(*) > 1;
+
+SELECT id_vehiculo, placa
+FROM vehiculo
+WHERE UPPER(TRIM(placa)) NOT REGEXP '^[A-Z]{3}[0-9]{3}$';
+```
+
+Después ejecuta una sola vez `sql/vehiculo-modulo.sql`. La migración conserva vehículos existentes y les asigna estado activo; tipo y energía quedan pendientes de completar al editar cada registro. La migración normaliza las placas y agrega el índice único, por lo que fallará explícitamente si aún existen placas duplicadas.
+
 ### Compatibilidad de inicio de sesión
 
 La autenticación usa JWT y las rutas protegidas consultan el estado actual de la cuenta en MySQL.
@@ -199,10 +225,16 @@ El catálogo se consulta mediante `GET /api/tipos-servicio`. Clientes y técnico
 
 - `GET /api/tipos-servicio/:id` - Consultar un servicio (administrador)
 - `POST /api/tipos-servicio` - Crear servicio (administrador)
-- `PUT /api/tipos-servicio/:id` - Actualizar nombre, descripción y, opcionalmente, si pide detalle (administrador)
+- `PUT /api/tipos-servicio/:id` - Actualizar nombre, descripción, detalle requerido y duración estimada (administrador)
 - `PATCH /api/tipos-servicio/:id/estado` - Activar/desactivar servicio (administrador)
 
-Para conectar el módulo a citas, selecciona un servicio activo al crear cada cita. El tipo de avería y la descripción del problema siguen siendo campos separados y obligatorios. Las citas históricas mantienen sus datos y reciben `NULL` en los campos nuevos; el nombre seleccionado se guarda como copia en la cita.
+La duración se configura en minutos, de 60 a 360 en incrementos de 60. Un servicio activo sin duración no puede reservarse. La duración usada se copia en la cita, para que futuros cambios del catálogo no alteren reservas existentes.
+
+Para consultar horarios disponibles usa `GET /api/citas/disponibilidad?fecha=AAAA-MM-DD&id_tipo_servicio=ID`; al reprogramar agrega `id_cita=ID`. La disponibilidad presenta inicios cada hora, verifica la duración completa dentro del horario del técnico y respeta un margen de 30 minutos entre trabajos. Crear y reprogramar vuelven a validar el horario y asignan el técnico automáticamente dentro de una transacción. La reserva exige 24 horas de anticipación; cancelar o reprogramar una cita existente exige 12 horas. Cada cliente puede tener una sola cita activa.
+
+El cliente puede crear y consultar sus citas, y cancelar o reprogramar las propias. El administrador consulta y gestiona todas las citas; el técnico consulta las asignadas y puede gestionar su estado, cancelar o reprogramar las asignadas. Solo administrador y técnico pueden validar, iniciar y finalizar una atención. Al finalizar se genera el reporte técnico.
+
+El tipo de avería y la descripción del problema son campos separados y obligatorios. Las citas históricas mantienen los datos guardados y reciben `NULL` en los campos de duración y servicio que no existían; el nombre seleccionado se guarda como copia en la cita.
 
 La opción `Otro servicio` del catálogo requiere `detalle_servicio`. Para crear una cita, incluye `id_tipo_servicio` y los campos que ya enviaba el cliente:
 
@@ -220,7 +252,7 @@ La opción `Otro servicio` del catálogo requiere `detalle_servicio`. Para crear
 
 El ID del ejemplo es ilustrativo: obtén el ID real de `GET /api/tipos-servicio` y usa el ID de `Otro servicio` solo cuando esa sea la opción elegida. En los demás servicios, omite `detalle_servicio`.
 
-Ejecuta una sola vez `sql/tipos-servicio.sql` en Workbench, después de crear las tablas `cita` y `tipo_averia`. La migración agrega el catálogo con opciones iniciales y agrega a `cita` las columnas para el servicio y su detalle; no elimina ni modifica citas anteriores.
+Para una instalación nueva, ejecuta `sql/tipos-servicio.sql` después de crear las tablas `cita` y `tipo_averia`. En una base que ya tiene catálogo y citas, ejecuta una sola vez `sql/citas-duracion.sql` para agregar las duraciones; no vuelvas a ejecutar esa migración ni el script de catálogo que agrega columnas ya existentes. La migración deja la duración de servicios y citas anteriores sin configurar: administración debe completar la duración de cada servicio antes de habilitar reservas nuevas.
 
 ### Tipos de avería
 

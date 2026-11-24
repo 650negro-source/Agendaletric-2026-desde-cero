@@ -64,6 +64,50 @@ async function getCitas(user) {
   throw createError("Access denied", 403);
 }
 
+async function getDisponibilidad(user, query) {
+  let duracionMinutos;
+
+  if (query.id_cita !== undefined) {
+    const cita = await citaRepository.findById(query.id_cita);
+    if (!cita) {
+      throw createError("Appointment not found", 404);
+    }
+    authorizeCita(cita, user);
+    if (["ATENDIDA", "CANCELADA"].includes(cita.estado)) {
+      throw createError("Appointment can no longer be rescheduled", 409);
+    }
+    if (Number(cita.id_tipo_servicio) !== query.id_tipo_servicio) {
+      throw createError("The service type cannot be changed while rescheduling", 400);
+    }
+
+    duracionMinutos = cita.duracion_minutos;
+    if (duracionMinutos === null) {
+      const tipoServicio = await citaRepository.findTipoServicioForCita(
+        query.id_tipo_servicio
+      );
+      duracionMinutos = tipoServicio?.duracion_minutos;
+    }
+  } else {
+    const tipoServicio = await citaRepository.findTipoServicioForCita(
+      query.id_tipo_servicio
+    );
+    if (!tipoServicio || Number(tipoServicio.estado) !== 1) {
+      throw createError("Service type not found or inactive", 404);
+    }
+    duracionMinutos = tipoServicio.duracion_minutos;
+  }
+
+  if (!citaRepository.isValidAppointmentDuration(duracionMinutos)) {
+    throw createError("Service duration is not configured", 409);
+  }
+
+  return citaRepository.findAvailableSlots(
+    query.fecha,
+    duracionMinutos,
+    query.id_cita
+  );
+}
+
 async function getCitaById(id, user) {
   const cita = await citaRepository.findById(id);
   if (!cita) {
@@ -155,6 +199,7 @@ async function reprogramarCita(id, citaData, user) {
 module.exports = {
   createCita,
   getCitas,
+  getDisponibilidad,
   getCitaById,
   getHistorial,
   transitionCita,

@@ -2,7 +2,8 @@ const pool = require("../../config/database");
 
 async function findAll(includeInactive) {
   const [rows] = await pool.execute(
-    `SELECT id_tipo_servicio, nombre, descripcion, estado, requiere_detalle
+    `SELECT id_tipo_servicio, nombre, descripcion, estado, requiere_detalle,
+            duracion_minutos
      FROM tipo_servicio
      WHERE (? = 1 OR estado = 1)
      ORDER BY nombre`,
@@ -14,7 +15,8 @@ async function findAll(includeInactive) {
 
 async function findById(id) {
   const [rows] = await pool.execute(
-    `SELECT id_tipo_servicio, nombre, descripcion, estado, requiere_detalle
+    `SELECT id_tipo_servicio, nombre, descripcion, estado, requiere_detalle,
+            duracion_minutos
      FROM tipo_servicio
      WHERE id_tipo_servicio = ?`,
     [id]
@@ -25,12 +27,14 @@ async function findById(id) {
 
 async function create(tipoServicio) {
   const [result] = await pool.execute(
-    `INSERT INTO tipo_servicio (nombre, descripcion, requiere_detalle)
-     VALUES (?, ?, ?)`,
+    `INSERT INTO tipo_servicio
+       (nombre, descripcion, requiere_detalle, duracion_minutos)
+     VALUES (?, ?, ?, ?)`,
     [
       tipoServicio.nombre,
       tipoServicio.descripcion,
       tipoServicio.requiere_detalle,
+      tipoServicio.duracion_minutos,
     ]
   );
 
@@ -40,12 +44,13 @@ async function create(tipoServicio) {
 async function update(id, tipoServicio) {
   const [result] = await pool.execute(
     `UPDATE tipo_servicio
-     SET nombre = ?, descripcion = ?, requiere_detalle = ?
+     SET nombre = ?, descripcion = ?, requiere_detalle = ?, duracion_minutos = ?
      WHERE id_tipo_servicio = ?`,
     [
       tipoServicio.nombre,
       tipoServicio.descripcion,
       tipoServicio.requiere_detalle,
+      tipoServicio.duracion_minutos,
       id,
     ]
   );

@@ -29,10 +29,18 @@ async function getClienteIdForUser(user, requestedId) {
 
 async function createVehiculo(user, vehiculoData) {
   const idCliente = await getClienteIdForUser(user, vehiculoData.id_cliente);
-  const idVehiculo = await vehiculoRepository.create({
-    ...vehiculoData,
-    id_cliente: idCliente,
-  });
+  let idVehiculo;
+  try {
+    idVehiculo = await vehiculoRepository.create({
+      ...vehiculoData,
+      id_cliente: idCliente,
+    });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw createError("Vehicle plate is already registered", 409);
+    }
+    throw error;
+  }
 
   return vehiculoRepository.findById(idVehiculo);
 }
@@ -65,7 +73,40 @@ async function getVehiculoById(id, user) {
 
 async function updateVehiculo(id, vehiculoData, user) {
   await getVehiculoById(id, user);
-  await vehiculoRepository.update(id, vehiculoData);
+  try {
+    const updateResult = await vehiculoRepository.update(id, vehiculoData);
+    if (updateResult.notFound) {
+      throw createError("Vehicle not found", 404);
+    }
+    if (updateResult.plateChangeBlocked) {
+      throw createError(
+        "Vehicle plate cannot be changed after it has appointments",
+        409
+      );
+    }
+  } catch (error) {
+    if (error.status) throw error;
+    if (error.code === "ER_DUP_ENTRY") {
+      throw createError("Vehicle plate is already registered", 409);
+    }
+    throw error;
+  }
+  return getVehiculoById(id, user);
+}
+
+async function changeVehiculoStatus(id, estado, user) {
+  await getVehiculoById(id, user);
+  const updateResult = await vehiculoRepository.updateStatus(id, estado);
+  if (updateResult.notFound) {
+    throw createError("Vehicle not found", 404);
+  }
+  if (updateResult.activeAppointments) {
+    throw createError(
+      "Vehicle with active appointments cannot be deactivated",
+      409
+    );
+  }
+
   return getVehiculoById(id, user);
 }
 
@@ -74,4 +115,5 @@ module.exports = {
   getVehiculos,
   getVehiculoById,
   updateVehiculo,
+  changeVehiculoStatus,
 };

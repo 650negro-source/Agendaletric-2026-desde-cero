@@ -1,3 +1,7 @@
+const vehicleTypes = new Set(["AUTOMOVIL", "CAMIONETA", "CAMION", "OTRO"]);
+const energyTypes = new Set(["GASOLINA", "DIESEL", "HIBRIDO", "ELECTRICO"]);
+const colombianPlatePattern = /^[A-Z]{3}\d{3}$/;
+
 function normalizeInteger(value) {
   if (value === undefined || value === null || value === "") {
     return undefined;
@@ -20,9 +24,11 @@ function normalizeInteger(value) {
 
 function validateVehiculoFields(req, res, next, includeClienteId) {
   const body = req.body || {};
-  const { placa, marca, modelo, anio, color } = body;
-  const normalizedYear = normalizeInteger(anio);
+  const placa = typeof body.placa === "string" ? body.placa.trim().toUpperCase() : "";
+  const { marca, modelo, color, tipo_vehiculo, tipo_energia } = body;
+  const normalizedYear = normalizeInteger(body.anio);
   const idCliente = includeClienteId ? normalizeInteger(body.id_cliente) : undefined;
+  const maximumYear = new Date().getFullYear() + 1;
 
   if (!placa || !marca || !modelo || normalizedYear === undefined || !color) {
     return res.status(400).json({
@@ -30,8 +36,13 @@ function validateVehiculoFields(req, res, next, includeClienteId) {
     });
   }
 
+  if (!colombianPlatePattern.test(placa)) {
+    return res.status(400).json({
+      message: "Plate must follow the Colombian format AAA999",
+    });
+  }
+
   const stringFields = [
-    ["placa", placa, 20],
     ["marca", marca, 50],
     ["modelo", modelo, 50],
     ["color", color, 30],
@@ -45,9 +56,21 @@ function validateVehiculoFields(req, res, next, includeClienteId) {
     }
   }
 
-  if (normalizedYear <= 0) {
+  if (!vehicleTypes.has(tipo_vehiculo)) {
     return res.status(400).json({
-      message: "Year must be a positive integer",
+      message: "Invalid vehicle type",
+    });
+  }
+
+  if (!energyTypes.has(tipo_energia)) {
+    return res.status(400).json({
+      message: "Invalid vehicle energy type",
+    });
+  }
+
+  if (normalizedYear < 1900 || normalizedYear > maximumYear) {
+    return res.status(400).json({
+      message: "Year must be between 1900 and the next calendar year",
     });
   }
 
@@ -61,7 +84,7 @@ function validateVehiculoFields(req, res, next, includeClienteId) {
     });
   }
 
-  body.placa = placa.trim();
+  body.placa = placa;
   body.marca = marca.trim();
   body.modelo = modelo.trim();
   body.anio = normalizedYear;
@@ -95,8 +118,21 @@ function validateVehiculoId(req, res, next) {
   next();
 }
 
+function validateStatus(req, res, next) {
+  const estado = normalizeInteger(req.body?.estado);
+  if (estado !== 0 && estado !== 1) {
+    return res.status(400).json({
+      message: "Status must be 0 or 1",
+    });
+  }
+
+  req.body = { ...(req.body || {}), estado };
+  next();
+}
+
 module.exports = {
   validateCreateVehiculo,
   validateVehiculoId,
   validateUpdateVehiculo,
+  validateStatus,
 };

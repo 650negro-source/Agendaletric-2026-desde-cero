@@ -1,0 +1,161 @@
+.appointments-page {
+  display: grid;
+  gap: 24px;
+}
+
+.appointments-page > .users-heading {
+  margin-bottom: 0;
+}
+
+.appointments-page .feedback {
+  margin: 0;
+}
+
+.feedback--notice {
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+}
+
+.appointment-services .users-toolbar {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.service-duration-list {
+  padding: 0 24px;
+}
+
+.service-duration-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 220px) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.service-duration-row:last-child {
+  border-bottom: 0;
+}
+
+.service-duration-row strong,
+.service-duration-row span {
+  display: block;
+}
+
+.service-duration-row span {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.service-duration-row select,
+.appointment-form select,
+.appointment-form input,
+.appointment-form textarea {
+  width: 100%;
+}
+
+.appointments-table {
+  min-width: 860px;
+}
+
+.appointments-table td {
+  vertical-align: middle;
+}
+
+.appointments-table td strong,
+.appointments-table td .user-email {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appointment-status {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.appointment-status--atendida {
+  color: var(--color-success-dark);
+  background: var(--color-success-background);
+}
+
+.appointment-status--cancelada {
+  color: var(--color-danger-dark);
+  background: var(--color-danger-background);
+}
+
+.appointment-actions {
+  flex-wrap: wrap;
+  min-width: 120px;
+}
+
+.text-button--danger {
+  color: var(--color-danger-dark);
+}
+
+.appointment-dialog {
+  width: min(100%, 720px);
+  max-height: min(90vh, 900px);
+  overflow-y: auto;
+}
+
+.appointment-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.appointment-form-wide {
+  grid-column: 1 / -1;
+}
+
+.appointment-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.appointment-availability {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+}
+
+.appointment-form .dialog-actions {
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .service-duration-list {
+    padding: 0 16px;
+  }
+
+  .service-duration-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .appointment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-form-wide,
+  .appointment-availability {
+    grid-column: auto;
+  }
+}

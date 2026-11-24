@@ -8,6 +8,16 @@ function createError(message, status) {
   return error;
 }
 
+function isValidAppointmentDuration(value) {
+  const minutes = Number(value);
+  return (
+    Number.isInteger(minutes) &&
+    minutes >= 60 &&
+    minutes <= 360 &&
+    minutes % 60 === 0
+  );
+}
+
 async function findClienteIdByUser(connection, idUsuario) {
   const [rows] = await connection.execute(
     `SELECT c.id_cliente
@@ -29,7 +39,9 @@ async function findVehicleByOwner(connection, idVehiculo, idCliente) {
     `SELECT id_vehiculo
      FROM vehiculo
      WHERE id_vehiculo = ?
-       AND id_cliente = ?`,
+       AND id_cliente = ?
+       AND estado = 1
+     FOR UPDATE`,
     [idVehiculo, idCliente]
   );
 
@@ -45,14 +57,19 @@ async function isAtLeastHoursAhead(connection, fecha, hora, hours) {
   return Boolean(rows[0].permitido);
 }
 
+const appointmentBufferMinutes = 30;
+
 async function findAvailableTechnicians(
   connection,
   fecha,
   hora,
-  excludeCitaId
+  duracionMinutos,
+  excludeCitaId,
+  lockTechnicians = true
 ) {
   const excludedId = excludeCitaId || 0;
-  const [rows] = await connection.execute(
+  const conflictLock = lockTechnicians ? " FOR UPDATE" : "";
+  const [candidates] = await connection.execute(
     `SELECT DISTINCT u.id_usuario
      FROM usuario u
      INNER JOIN rol r ON r.id_rol = u.id_rol_fk
@@ -62,30 +79,107 @@ async function findAvailableTechnicians(
        AND r.nombre = ?
        AND h.dia_semana = WEEKDAY(?) + 1
        AND CAST(? AS CHAR) >= CAST(h.hora_inicio AS CHAR)
-       AND CAST(? AS CHAR) < CAST(h.hora_fin AS CHAR)
-       AND NOT EXISTS (
-         SELECT 1
-         FROM cita c
-         WHERE c.id_usuario_tecnico = u.id_usuario
-           AND c.fecha_programada = ?
-           AND c.hora_programada = ?
-           AND c.estado IN (?, ?, ?, ?)
-           AND c.id_cita <> ?
-       )
+       AND TIMESTAMPADD(
+             MINUTE, ?, TIMESTAMP(?, ?)
+           ) <= TIMESTAMP(?, h.hora_fin)
      ORDER BY u.id_usuario`,
     [
       "TECHNICIAN",
       fecha,
       hora,
-      hora,
+      duracionMinutos,
       fecha,
       hora,
-      ...activeStates,
-      excludedId,
+      fecha,
     ]
   );
 
-  return rows;
+  const availableTechnicians = [];
+  for (const candidate of candidates) {
+    if (lockTechnicians) {
+      const [lockedTechnicians] = await connection.execute(
+        `SELECT id_usuario
+         FROM usuario
+         WHERE id_usuario = ?
+           AND estado = 1
+           AND deleted_at IS NULL
+         FOR UPDATE`,
+        [candidate.id_usuario]
+      );
+      if (lockedTechnicians.length === 0) continue;
+    }
+
+    const [conflicts] = await connection.execute(
+      `SELECT 1
+       FROM cita c
+       WHERE c.id_usuario_tecnico = ?
+         AND c.fecha_programada = ?
+         AND c.estado IN (?, ?, ?, ?)
+         AND c.id_cita <> ?
+         AND TIMESTAMP(c.fecha_programada, c.hora_programada) <
+             TIMESTAMPADD(MINUTE, ?, TIMESTAMP(?, ?))
+         AND TIMESTAMPADD(
+               MINUTE, COALESCE(c.duracion_minutos, 360) + ?,
+               TIMESTAMP(c.fecha_programada, c.hora_programada)
+             ) > TIMESTAMP(?, ?)
+       LIMIT 1${conflictLock}`,
+      [
+        candidate.id_usuario,
+        fecha,
+        ...activeStates,
+        excludedId,
+        duracionMinutos + appointmentBufferMinutes,
+        fecha,
+        hora,
+        appointmentBufferMinutes,
+        fecha,
+        hora,
+      ]
+    );
+    if (conflicts.length === 0) {
+      availableTechnicians.push(candidate);
+      return availableTechnicians;
+    }
+  }
+
+  return availableTechnicians;
+}
+
+async function findAvailableSlots(fecha, duracionMinutos, excludeCitaId = 0) {
+  const connection = await pool.getConnection();
+  const horarios = [];
+
+  try {
+    for (let hour = 0; hour < 24; hour += 1) {
+      const hora = `${String(hour).padStart(2, "0")}:00:00`;
+      if (!(await isAtLeastHoursAhead(connection, fecha, hora, 24))) continue;
+
+      const technicians = await findAvailableTechnicians(
+        connection,
+        fecha,
+        hora,
+        duracionMinutos,
+        excludeCitaId,
+        false
+      );
+      if (technicians.length > 0) {
+        horarios.push(hora.slice(0, 5));
+      }
+    }
+    return horarios;
+  } finally {
+    connection.release();
+  }
+}
+
+async function findTipoServicioForCita(idTipoServicio) {
+  const [rows] = await pool.execute(
+    `SELECT id_tipo_servicio, nombre, estado, requiere_detalle, duracion_minutos
+     FROM tipo_servicio
+     WHERE id_tipo_servicio = ?`,
+    [idTipoServicio]
+  );
+  return rows[0];
 }
 
 async function insertHistory(
@@ -120,6 +214,7 @@ async function findCitaByIdWithConnection(connection, id) {
        c.id_usuario_tecnico,
        c.fecha_programada,
        c.hora_programada,
+       c.duracion_minutos,
        c.estado,
        c.descripcion_averia,
        c.observaciones,
@@ -187,7 +282,7 @@ async function createCita(cita, idUsuarioActor) {
     }
 
     const [serviceTypes] = await connection.execute(
-      `SELECT id_tipo_servicio, nombre, requiere_detalle
+      `SELECT id_tipo_servicio, nombre, requiere_detalle, duracion_minutos
        FROM tipo_servicio
        WHERE id_tipo_servicio = ?
          AND estado = 1
@@ -197,6 +292,9 @@ async function createCita(cita, idUsuarioActor) {
     const serviceType = serviceTypes[0];
     if (!serviceType) {
       throw createError("Service type not found or inactive", 400);
+    }
+    if (!isValidAppointmentDuration(serviceType.duracion_minutos)) {
+      throw createError("Service duration is not configured", 409);
     }
     if (serviceType.requiere_detalle && !cita.detalle_servicio) {
       throw createError("Details are required for the selected service type", 400);
@@ -208,7 +306,8 @@ async function createCita(cita, idUsuarioActor) {
     const technicians = await findAvailableTechnicians(
       connection,
       cita.fecha_programada,
-      cita.hora_programada
+      cita.hora_programada,
+      serviceType.duracion_minutos
     );
 
     if (technicians.length === 0) {
@@ -224,9 +323,9 @@ async function createCita(cita, idUsuarioActor) {
              (codigo_asignacion, id_cliente, id_vehiculo, id_tipo_averia,
               tipo_averia_nombre, id_tipo_servicio, tipo_servicio_nombre,
               detalle_servicio, id_usuario_tecnico,
-              fecha_programada, hora_programada, estado, descripcion_averia,
+              fecha_programada, hora_programada, duracion_minutos, estado, descripcion_averia,
               observaciones)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PROGRAMADA', ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PROGRAMADA', ?, ?)`,
           [
             cita.codigo_asignacion,
             cliente.id_cliente,
@@ -239,6 +338,7 @@ async function createCita(cita, idUsuarioActor) {
             technician.id_usuario,
             cita.fecha_programada,
             cita.hora_programada,
+            serviceType.duracion_minutos,
             cita.descripcion_averia,
             cita.observaciones,
           ]
@@ -294,6 +394,7 @@ async function findAll() {
        c.id_tipo_averia, c.tipo_averia_nombre,
        c.id_tipo_servicio, c.tipo_servicio_nombre, c.detalle_servicio,
        c.id_usuario_tecnico, c.fecha_programada, c.hora_programada,
+       c.duracion_minutos,
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
@@ -316,6 +417,7 @@ async function findAllByClienteUserId(idUsuario) {
        c.id_tipo_averia, c.tipo_averia_nombre,
        c.id_tipo_servicio, c.tipo_servicio_nombre, c.detalle_servicio,
        c.id_usuario_tecnico, c.fecha_programada, c.hora_programada,
+       c.duracion_minutos,
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
@@ -340,6 +442,7 @@ async function findAllByTechnicianId(idUsuario) {
        c.id_tipo_averia, c.tipo_averia_nombre,
        c.id_tipo_servicio, c.tipo_servicio_nombre, c.detalle_servicio,
        c.id_usuario_tecnico, c.fecha_programada, c.hora_programada,
+       c.duracion_minutos,
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
@@ -551,6 +654,8 @@ async function reprogramarCita(id, idUsuarioActor, estadoAnterior, fecha, hora) 
 
     const [rows] = await connection.execute(
       `SELECT estado,
+              id_tipo_servicio,
+              duracion_minutos,
               DATE_FORMAT(fecha_programada, '%Y-%m-%d') AS fecha_programada,
               TIME_FORMAT(hora_programada, '%H:%i:%s') AS hora_programada
        FROM cita
@@ -584,7 +689,27 @@ async function reprogramarCita(id, idUsuarioActor, estadoAnterior, fecha, hora) 
       throw createError("Appointments must be scheduled at least 24 hours ahead", 400);
     }
 
-    const technicians = await findAvailableTechnicians(connection, fecha, hora, id);
+    let duracionMinutos = rows[0].duracion_minutos;
+    if (duracionMinutos === null) {
+      const [serviceTypes] = await connection.execute(
+        `SELECT duracion_minutos
+         FROM tipo_servicio
+         WHERE id_tipo_servicio = ?`,
+        [rows[0].id_tipo_servicio]
+      );
+      duracionMinutos = serviceTypes[0]?.duracion_minutos;
+    }
+    if (!isValidAppointmentDuration(duracionMinutos)) {
+      throw createError("Service duration is not configured", 409);
+    }
+
+    const technicians = await findAvailableTechnicians(
+      connection,
+      fecha,
+      hora,
+      duracionMinutos,
+      id
+    );
     if (technicians.length === 0) {
       throw createError("No technician is available at the requested date and time", 409);
     }
@@ -597,9 +722,10 @@ async function reprogramarCita(id, idUsuarioActor, estadoAnterior, fecha, hora) 
            SET id_usuario_tecnico = ?,
                fecha_programada = ?,
                hora_programada = ?,
+               duracion_minutos = ?,
                estado = 'PROGRAMADA'
            WHERE id_cita = ?`,
-          [technician.id_usuario, fecha, hora, id]
+          [technician.id_usuario, fecha, hora, duracionMinutos, id]
         );
         updated = true;
         break;
@@ -668,6 +794,9 @@ module.exports = {
   findAllByClienteUserId,
   findAllByTechnicianId,
   findById,
+  findAvailableSlots,
+  findTipoServicioForCita,
+  isValidAppointmentDuration,
   changeEstado,
   cancelarCita,
   reprogramarCita,

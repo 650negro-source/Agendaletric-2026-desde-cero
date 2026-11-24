@@ -7,6 +7,7 @@ const {
   validateCreateVehiculo,
   validateVehiculoId,
   validateUpdateVehiculo,
+  validateStatus,
 } = require("./vehiculo.validator");
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.use(authorizeRoles(1, 2));
 
 router.post("/", validateCreateVehiculo, vehiculoController.createVehiculo);
 router.get("/", vehiculoController.getVehiculos);
+router.patch("/:id/status", validateVehiculoId, validateStatus, vehiculoController.changeVehiculoStatus);
 router.get("/:id", validateVehiculoId, vehiculoController.getVehiculoById);
 router.put("/:id", validateVehiculoId, validateUpdateVehiculo, vehiculoController.updateVehiculo);
 
