@@ -22,6 +22,7 @@ El frontend ya incluye:
 - Reportes técnicos por rol: edición y evidencias antes de publicar, solicitud administrativa de corrección y consulta del cliente mediante reporte publicado y PDF.
 - Controles de permisos por rol según el backend (`SYSTEM_ADMIN`, `TECHNICIAN`, `CUSTOMER`).
 - Gestión de usuarios, clientes y catálogos visible solo para administración.
+- Panel administrativo con resumen de citas, reportes y usuarios activos.
 - Manejo de estados de carga, vacío, error y mensajes de éxito.
 - Integración con el cliente HTTP centralizado y validaciones de respuesta en cada servicio.
 

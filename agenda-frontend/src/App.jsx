@@ -9,6 +9,7 @@ import CitasPage from './features/citas/CitasPage.jsx'
 import TecnicosPage from './features/tecnicos/TecnicosPage.jsx'
 import ReportesPage from './features/reportes/ReportesPage.jsx'
 import CatalogosPage from './features/catalogos/CatalogosPage.jsx'
+import DashboardPage from './features/dashboard/DashboardPage.jsx'
 import { clearSession, getMyProfile, readSession, saveSession, signIn } from './services/authService.js'
 import UsersPage from './features/users/UsersPage.jsx'
 import {
@@ -34,7 +35,7 @@ function App() {
   const [restoreAttempt, setRestoreAttempt] = useState(0)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
-  const [adminSection, setAdminSection] = useState('users')
+  const [adminSection, setAdminSection] = useState('dashboard')
   const [customerSection, setCustomerSection] = useState('profile')
   const [technicianSection, setTechnicianSection] = useState('appointments')
 
@@ -228,6 +229,14 @@ function App() {
         <>
           <nav className="app-navigation" aria-label="Módulos de administración">
             <button
+              className={adminSection === 'dashboard' ? 'app-navigation-link is-active' : 'app-navigation-link'}
+              type="button"
+              aria-current={adminSection === 'dashboard' ? 'page' : undefined}
+              onClick={() => setAdminSection('dashboard')}
+            >
+              Resumen
+            </button>
+            <button
               className={adminSection === 'users' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'users' ? 'page' : undefined}
@@ -284,7 +293,9 @@ function App() {
               Catálogos
             </button>
           </nav>
-          {adminSection === 'catalogs' ? (
+          {adminSection === 'dashboard' ? (
+            <DashboardPage session={session} />
+          ) : adminSection === 'catalogs' ? (
             <CatalogosPage session={session} />
           ) : adminSection === 'reports' ? (
             <ReportesPage session={session} />

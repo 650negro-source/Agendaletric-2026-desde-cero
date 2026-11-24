@@ -22,6 +22,8 @@ const tipoAveriaRoutes = require("./modules/tipos-averia/tipo-averia.routes");
 
 const tipoServicioRoutes = require("./modules/tipos-servicio/tipo-servicio.routes");
 
+const dashboardRoutes = require("./modules/dashboard/dashboard.routes");
+
 const app = express();
 
 app.use(express.json());
@@ -54,6 +56,8 @@ app.use("/api/tecnicos", tecnicoRoutes);
 app.use("/api/tipos-averia", tipoAveriaRoutes);
 
 app.use("/api/tipos-servicio", tipoServicioRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
 
 // Middleware global de errores
 app.use(errorHandler);

@@ -142,6 +142,12 @@ agenda-backend/
 
 - `GET /api/health`
 
+### Panel administrativo
+
+- `GET /api/dashboard` - Resumen de citas, reportes y usuarios activos (solo `SYSTEM_ADMIN`)
+
+El endpoint agrupa citas de hoy y los próximos siete días, estados de citas y reportes, clientes activos y técnicos activos. El panel realiza una sola petición al cargar y permite actualizar los datos.
+
 ### Usuarios
 
 - `POST /api/users` - Crear usuario
