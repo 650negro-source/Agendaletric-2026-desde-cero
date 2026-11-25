@@ -7,3 +7,6 @@ ALTER TABLE tipo_servicio
 ALTER TABLE cita
     ADD COLUMN duracion_minutos INT NULL
         AFTER hora_programada;
+
+
+

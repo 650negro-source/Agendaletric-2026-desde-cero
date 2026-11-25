@@ -28,3 +28,8 @@ CREATE TABLE IF NOT EXISTS password_reset_token (
         REFERENCES usuario(id_usuario)
         ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+
+
+
+
