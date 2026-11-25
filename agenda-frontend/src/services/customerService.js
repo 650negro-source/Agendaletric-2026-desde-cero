@@ -26,6 +26,20 @@ export async function getMyCustomer(token) {
   return response.data
 }
 
+export async function createMyCustomer(token, customer) {
+  const response = await apiRequest('/clientes/me', {
+    token,
+    method: 'POST',
+    body: customer,
+  })
+
+  if (!response?.data || typeof response.data !== 'object') {
+    throw new Error('La API no devolvió el perfil de cliente esperado.')
+  }
+
+  return response.data
+}
+
 export async function updateMyCustomer(token, customer) {
   const response = await apiRequest('/clientes/me', {
     token,

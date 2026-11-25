@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getCustomerDataValidationMessage } from '../../shared/customerValidation.js'
 
-function ClienteForm({ cliente, onCancel, onSubmit }) {
+function ClienteForm({ cliente, onCancel, onSubmit, submitLabel = 'Guardar cambios' }) {
   const [form, setForm] = useState({
     nombre_completo: cliente.nombre_completo ?? '',
     documento_identidad: cliente.documento_identidad ?? '',
@@ -110,16 +110,18 @@ function ClienteForm({ cliente, onCancel, onSubmit }) {
       </label>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="dialog-actions">
-        <button
-          className="button button--secondary"
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          Cancelar
-        </button>
+        {onCancel && (
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancelar
+          </button>
+        )}
         <button className="button button--primary" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+          {isSubmitting ? 'Guardando...' : submitLabel}
         </button>
       </div>
     </form>

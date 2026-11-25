@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getMyCustomer, updateMyCustomer } from '../../services/customerService.js'
+import {
+  createMyCustomer,
+  getMyCustomer,
+  updateMyCustomer,
+} from '../../services/customerService.js'
 import ClienteForm from './ClienteForm.jsx'
 import './ClientesPage.css'
 import '../users/ConfirmDialog.css'
@@ -10,16 +14,24 @@ function ClienteProfilePage({ session, onProfileUpdated }) {
   const [cliente, setCliente] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
+  const [profileMissing, setProfileMissing] = useState(false)
   const [pageError, setPageError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
   const loadProfile = useCallback(async () => {
     setIsLoading(true)
     setPageError('')
+    setProfileMissing(false)
     try {
       setCliente(await getMyCustomer(session.token))
+      setProfileMissing(false)
     } catch (error) {
-      setPageError(error.message)
+      if (error.status === 404) {
+        setCliente(null)
+        setProfileMissing(true)
+      } else {
+        setPageError(error.message)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -29,10 +41,20 @@ function ClienteProfilePage({ session, onProfileUpdated }) {
     let isCurrent = true
     getMyCustomer(session.token)
       .then((profile) => {
-        if (isCurrent) setCliente(profile)
+        if (isCurrent) {
+          setCliente(profile)
+          setProfileMissing(false)
+        }
       })
       .catch((error) => {
-        if (isCurrent) setPageError(error.message)
+        if (isCurrent) {
+          if (error.status === 404) {
+            setCliente(null)
+            setProfileMissing(true)
+          } else {
+            setPageError(error.message)
+          }
+        }
       })
       .finally(() => {
         if (isCurrent) setIsLoading(false)
@@ -46,11 +68,18 @@ function ClienteProfilePage({ session, onProfileUpdated }) {
   async function handleSave(customerData) {
     setPageError('')
     setSuccessMessage('')
-    const updatedProfile = await updateMyCustomer(session.token, customerData)
+    const updatedProfile = profileMissing
+      ? await createMyCustomer(session.token, customerData)
+      : await updateMyCustomer(session.token, customerData)
     setCliente(updatedProfile)
+    setProfileMissing(false)
     onProfileUpdated(updatedProfile)
     setIsEditing(false)
-    setSuccessMessage('Tus datos se actualizaron correctamente.')
+    setSuccessMessage(
+      profileMissing
+        ? 'Tu perfil se creó correctamente. Ya puedes registrar vehículos y solicitar citas.'
+        : 'Tus datos se actualizaron correctamente.'
+    )
   }
 
   return (
@@ -85,6 +114,22 @@ function ClienteProfilePage({ session, onProfileUpdated }) {
             cliente={cliente}
             onCancel={() => setIsEditing(false)}
             onSubmit={handleSave}
+          />
+        </section>
+      ) : profileMissing ? (
+        <section className="users-card client-profile-card" aria-label="Completar perfil">
+          <h2>Completa tu perfil de cliente</h2>
+          <p>
+            Esta cuenta antigua no tiene un perfil asociado. Completa tus datos para
+            habilitar tus vehículos y citas.
+          </p>
+          <ClienteForm
+            cliente={{
+              nombre_completo: session.user.nombre,
+              correo: session.user.correo,
+            }}
+            onSubmit={handleSave}
+            submitLabel="Completar perfil"
           />
         </section>
       ) : cliente ? (

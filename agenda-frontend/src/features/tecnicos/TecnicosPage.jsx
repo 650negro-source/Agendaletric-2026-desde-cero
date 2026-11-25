@@ -228,9 +228,10 @@ function TechnicianSchedules({ schedules, isAdmin, onEdit, onDelete }) {
   )
 }
 
-function TecnicosPage({ session }) {
+function TecnicosPage({ session, initialActiveOnly = false }) {
   const isAdmin = Number(session.user.id_rol) === ADMIN_ROLE_ID
   const [technicians, setTechnicians] = useState([])
+  const [activeOnly, setActiveOnly] = useState(initialActiveOnly)
   const [users, setUsers] = useState([])
   const [schedules, setSchedules] = useState([])
   const [myTechnician, setMyTechnician] = useState(null)
@@ -354,6 +355,12 @@ function TecnicosPage({ session }) {
     () => technicianUsers.filter((user) => Number(user.estado) === 1),
     [technicianUsers]
   )
+  const visibleTechnicians = useMemo(
+    () => activeOnly
+      ? technicians.filter((technician) => Number(technician.estado) === 1)
+      : technicians,
+    [activeOnly, technicians]
+  )
   const availableUsers = useMemo(() => {
     const profileIds = new Set(technicians.map((technician) => String(technician.id_usuario)))
     return activeTechnicianUsers.filter(
@@ -472,21 +479,40 @@ function TecnicosPage({ session }) {
             <div className="users-toolbar">
               <div>
                 <h2 id="technicians-list-title">Perfiles técnicos</h2>
-                <p>{technicians.length} {technicians.length === 1 ? 'perfil' : 'perfiles'}</p>
+                <p>
+                  {activeOnly
+                    ? `${visibleTechnicians.length} perfiles técnicos activos`
+                    : `${technicians.length} ${technicians.length === 1 ? 'perfil' : 'perfiles'}`}
+                </p>
               </div>
-              <button
-                className="button button--secondary"
-                type="button"
-                onClick={() => void loadAdminData()}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Actualizando...' : 'Actualizar'}
-              </button>
+              <div className="users-toolbar-actions">
+                {activeOnly && (
+                  <button
+                    className="button button--quiet"
+                    type="button"
+                    onClick={() => setActiveOnly(false)}
+                  >
+                    Mostrar todos
+                  </button>
+                )}
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => void loadAdminData()}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Actualizando...' : 'Actualizar'}
+                </button>
+              </div>
             </div>
             {isLoading ? (
               <p className="users-state" role="status">Cargando técnicos...</p>
-            ) : technicians.length === 0 ? (
-              <p className="users-state">Aún no hay perfiles técnicos.</p>
+            ) : visibleTechnicians.length === 0 ? (
+              <p className="users-state">
+                {activeOnly
+                  ? 'No hay perfiles técnicos activos.'
+                  : 'Aún no hay perfiles técnicos.'}
+              </p>
             ) : (
               <div className="users-table-scroll">
                 <table className="users-table">
@@ -500,7 +526,7 @@ function TecnicosPage({ session }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {technicians.map((technician) => (
+                    {visibleTechnicians.map((technician) => (
                       <tr key={technician.id_usuario}>
                         <td>
                           <strong className="user-name">{technician.nombre}</strong>

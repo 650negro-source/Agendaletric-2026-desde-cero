@@ -72,12 +72,43 @@ async function getClienteByUserId(idUsuario) {
   const cliente = await clienteRepository.findByUserId(idUsuario);
 
   if (!cliente) {
-    const error = new Error("Client not found");
+    const error = new Error("Customer profile not found");
     error.status = 404;
     throw error;
   }
 
   return cliente;
+}
+
+async function createClienteForUser(idUsuario, clienteData) {
+  const existingDocument = await clienteRepository.findByDocumento(
+    clienteData.documento_identidad
+  );
+  if (existingDocument) {
+    const error = new Error("Identity document already registered");
+    error.status = 409;
+    throw error;
+  }
+
+  const existingEmail = await clienteRepository.findByEmail(clienteData.correo);
+  if (existingEmail && Number(existingEmail.id_usuario) !== Number(idUsuario)) {
+    const error = new Error("Email is already registered");
+    error.status = 409;
+    throw error;
+  }
+
+  try {
+    await clienteRepository.createForUser(idUsuario, clienteData);
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      const conflict = new Error("Email or identity document is already registered");
+      conflict.status = 409;
+      throw conflict;
+    }
+    throw error;
+  }
+
+  return clienteRepository.findByUserId(idUsuario);
 }
 
 async function updateCliente(id, clienteData) {
@@ -158,6 +189,7 @@ module.exports = {
   createCliente,
   getClientes,
   getClienteByUserId,
+  createClienteForUser,
   getClienteById,
   updateClienteByUserId,
   updateCliente,

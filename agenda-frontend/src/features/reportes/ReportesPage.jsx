@@ -3,6 +3,7 @@ import { getAppointments } from '../../services/appointmentService.js'
 import {
   downloadReportFile,
   getAppointmentReport,
+  getReportAppointmentIds,
   publishAppointmentReport,
   requestReportCorrection,
   retryReportNotification,
@@ -36,12 +37,32 @@ function formatDate(value) {
   return `${day}/${month}/${year}`
 }
 
-function ReportesPage({ session }) {
+async function loadReportAppointments(token, isAdmin, publicationState) {
+  const [loadedAppointments, reportAppointmentIds] = await Promise.all([
+    getAppointments(token),
+    isAdmin && publicationState
+      ? getReportAppointmentIds(token, publicationState)
+      : Promise.resolve(null),
+  ])
+  const completedAppointments = loadedAppointments.filter(
+    (appointment) => appointment.estado === 'ATENDIDA'
+  )
+
+  if (!reportAppointmentIds) return completedAppointments
+
+  const matchingIds = new Set(reportAppointmentIds.map(String))
+  return completedAppointments.filter((appointment) => (
+    matchingIds.has(String(appointment.id_cita))
+  ))
+}
+
+function ReportesPage({ session, initialPublicationState = '' }) {
   const roleId = Number(session.user.id_rol)
   const isAdmin = roleId === ADMIN_ROLE_ID
   const isCustomer = roleId === CUSTOMER_ROLE_ID
   const canManage = isAdmin || roleId === TECHNICIAN_ROLE_ID
   const [appointments, setAppointments] = useState([])
+  const [publicationStateFilter, setPublicationStateFilter] = useState(initialPublicationState)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [report, setReport] = useState(null)
   const [draft, setDraft] = useState({
@@ -64,22 +85,23 @@ function ReportesPage({ session }) {
     setPageError('')
     setIsLoading(true)
     try {
-      const loaded = await getAppointments(session.token)
-      setAppointments(loaded.filter((appointment) => appointment.estado === 'ATENDIDA'))
+      setAppointments(await loadReportAppointments(
+        session.token,
+        isAdmin,
+        publicationStateFilter
+      ))
     } catch (error) {
       setPageError(error.message)
     } finally {
       setIsLoading(false)
     }
-  }, [session.token])
+  }, [isAdmin, publicationStateFilter, session.token])
 
   useEffect(() => {
     let isCurrent = true
-    getAppointments(session.token)
-      .then((loaded) => {
-        if (isCurrent) {
-          setAppointments(loaded.filter((appointment) => appointment.estado === 'ATENDIDA'))
-        }
+    loadReportAppointments(session.token, isAdmin, publicationStateFilter)
+      .then((loadedAppointments) => {
+        if (isCurrent) setAppointments(loadedAppointments)
       })
       .catch((error) => {
         if (isCurrent) setPageError(error.message)
@@ -91,7 +113,7 @@ function ReportesPage({ session }) {
     return () => {
       isCurrent = false
     }
-  }, [session.token])
+  }, [isAdmin, publicationStateFilter, session.token])
 
   const publicationState = report?.estado_publicacion
   const isEditable = canManage && ['BORRADOR', 'REQUIERE_CORRECCION'].includes(publicationState)
@@ -303,14 +325,35 @@ function ReportesPage({ session }) {
       <section className="users-card">
         <div className="users-toolbar">
           <div>
-            <h2>Citas atendidas</h2>
-            <p>Selecciona una cita para consultar su reporte.</p>
+            <h2>
+              {publicationStateFilter
+                ? `Reportes: ${PUBLICATION_LABELS[publicationStateFilter] || publicationStateFilter}`
+                : 'Citas atendidas'}
+            </h2>
+            <p>
+              {publicationStateFilter
+                ? 'Selecciona un reporte para consultar su cita.'
+                : 'Selecciona una cita para consultar su reporte.'}
+            </p>
           </div>
+          {publicationStateFilter && (
+            <button
+              className="button button--quiet"
+              type="button"
+              onClick={() => setPublicationStateFilter('')}
+            >
+              Mostrar todos
+            </button>
+          )}
         </div>
         {isLoading ? (
           <p className="users-state" role="status">Cargando citas atendidas...</p>
         ) : appointments.length === 0 ? (
-          <p className="users-state">No hay citas atendidas.</p>
+          <p className="users-state">
+            {publicationStateFilter
+              ? 'No hay reportes con este estado.'
+              : 'No hay citas atendidas.'}
+          </p>
         ) : (
           <div className="users-table-scroll">
             <table className="users-table reports-table">

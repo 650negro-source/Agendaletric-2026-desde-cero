@@ -8,6 +8,19 @@ export async function getAppointmentReport(token, appointmentId) {
   return response.data
 }
 
+export async function getReportAppointmentIds(token, publicationState) {
+  const response = await apiRequest(
+    `/reportes-tecnicos/estado/${encodeURIComponent(publicationState)}`,
+    { token }
+  )
+
+  if (!Array.isArray(response?.data)) {
+    throw new Error('La API no devolvió el listado de reportes esperado.')
+  }
+
+  return response.data
+}
+
 export async function updateAppointmentReport(token, appointmentId, report) {
   return apiRequest(`/reportes-tecnicos/${appointmentId}`, {
     token,

@@ -55,6 +55,21 @@ async function getByCitaId(req, res, next) {
   }
 }
 
+async function getCitaIdsByPublicationState(req, res, next) {
+  try {
+    const appointmentIds = await reporteService.getCitaIdsByPublicationState(
+      req.params.estado,
+      req.user
+    );
+
+    return res.status(200).json({
+      data: appointmentIds,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function updateByCitaId(req, res, next) {
   try {
     const reporte = await reporteService.updateByCitaId(
@@ -270,6 +285,7 @@ async function retryNotificationByCitaId(req, res, next) {
 
 module.exports = {
   getByCitaId,
+  getCitaIdsByPublicationState,
   updateByCitaId,
   ensureCanManageReport,
   addArchivo,

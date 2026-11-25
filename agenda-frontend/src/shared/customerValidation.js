@@ -1,3 +1,5 @@
+import { getEmailValidationMessage } from './emailValidation.js'
+
 const personNamePattern = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u
 
 export function getCustomerDataValidationMessage(customer) {
@@ -12,8 +14,9 @@ export function getCustomerDataValidationMessage(customer) {
     return 'El celular debe tener 10 dígitos y comenzar por 3.'
   }
   const email = customer.correo?.trim() ?? ''
-  if (email.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return 'Ingresa un correo electrónico válido de máximo 150 caracteres.'
+  const emailError = getEmailValidationMessage(email)
+  if (emailError) {
+    return emailError
   }
   if ((customer.direccion?.trim().length ?? 0) > 150) {
     return 'La dirección no puede superar 150 caracteres.'

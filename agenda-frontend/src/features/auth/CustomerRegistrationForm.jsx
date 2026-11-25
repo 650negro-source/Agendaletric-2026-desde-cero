@@ -58,14 +58,14 @@ function CustomerRegistrationForm({ onCancel, onSuccess }) {
 
   return (
     <section className="login-card" aria-labelledby="registration-title">
-      <div className="login-brand-mark" aria-hidden="true">A</div>
+      <div className="login-brand-mark" aria-hidden="true">⚡</div>
       <p className="eyebrow">AgendaLetric</p>
       <h1 id="registration-title">Crear cuenta de cliente</h1>
       <p className="login-description">
         El registro público crea únicamente una cuenta de cliente.
       </p>
 
-      <form className="user-form customer-registration-form" onSubmit={handleSubmit}>
+      <form className="user-form customer-registration-form" noValidate onSubmit={handleSubmit}>
         <label>
           Nombre completo
           <input

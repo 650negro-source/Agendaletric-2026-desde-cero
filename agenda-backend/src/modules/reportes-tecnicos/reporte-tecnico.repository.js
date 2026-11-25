@@ -36,6 +36,18 @@ async function findByCitaId(idCita) {
   return rows[0];
 }
 
+async function findCitaIdsByPublicationState(state) {
+  const [rows] = await pool.execute(
+    `SELECT id_cita
+     FROM reporte_tecnico
+     WHERE estado_publicacion = ?
+     ORDER BY id_cita`,
+    [state]
+  );
+
+  return rows.map((row) => Number(row.id_cita));
+}
+
 async function updateByCitaId(idCita, reporte) {
   const connection = await pool.getConnection();
   let committed = false;
@@ -443,6 +455,7 @@ async function requestCorrectionByCitaId(
 
 module.exports = {
   findByCitaId,
+  findCitaIdsByPublicationState,
   updateByCitaId,
   findArchivosByReporteId,
   createArchivo,

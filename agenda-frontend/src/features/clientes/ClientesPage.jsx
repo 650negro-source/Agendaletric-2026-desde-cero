@@ -14,9 +14,10 @@ import '../users/UserForm.css'
 import '../users/UsersPage.css'
 import '../users/UsersTable.css'
 
-function ClientesPage({ session }) {
+function ClientesPage({ session, initialActiveOnly = false }) {
   const [clientes, setClientes] = useState([])
   const [search, setSearch] = useState('')
+  const [activeOnly, setActiveOnly] = useState(initialActiveOnly)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -58,16 +59,19 @@ function ClientesPage({ session }) {
 
   const visibleCustomers = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase()
-    if (!normalizedSearch) return clientes
+    return clientes.filter((cliente) => {
+      if (activeOnly && Number(cliente.estado) !== 1) return false
+      if (!normalizedSearch) return true
 
-    return clientes.filter((cliente) => [
-      cliente.id_cliente,
-      cliente.nombre_completo,
-      cliente.documento_identidad,
-      cliente.telefono,
-      cliente.correo,
-    ].some((value) => String(value ?? '').toLocaleLowerCase().includes(normalizedSearch)))
-  }, [clientes, search])
+      return [
+        cliente.id_cliente,
+        cliente.nombre_completo,
+        cliente.documento_identidad,
+        cliente.telefono,
+        cliente.correo,
+      ].some((value) => String(value ?? '').toLocaleLowerCase().includes(normalizedSearch))
+    })
+  }, [activeOnly, clientes, search])
 
   async function handleView(customerId) {
     setPageError('')
@@ -138,9 +142,22 @@ function ClientesPage({ session }) {
         <div className="users-toolbar">
           <div>
             <h2 id="customers-list-title">Directorio de clientes</h2>
-            <p>{clientes.length} {clientes.length === 1 ? 'cliente' : 'clientes'}</p>
+            <p>
+              {activeOnly
+                ? `${visibleCustomers.length} clientes activos`
+                : `${clientes.length} ${clientes.length === 1 ? 'cliente' : 'clientes'}`}
+            </p>
           </div>
           <div className="users-toolbar-actions">
+            {activeOnly && (
+              <button
+                className="button button--quiet"
+                type="button"
+                onClick={() => setActiveOnly(false)}
+              >
+                Mostrar todos
+              </button>
+            )}
             <label className="users-search">
               <span className="visually-hidden">Buscar clientes</span>
               <input
@@ -166,7 +183,11 @@ function ClientesPage({ session }) {
         {isLoading ? (
           <p className="users-state" role="status">Cargando clientes...</p>
         ) : visibleCustomers.length === 0 ? (
-          <p className="users-state">No hay clientes que coincidan con la búsqueda.</p>
+          <p className="users-state">
+            {activeOnly && !search.trim()
+              ? 'No hay clientes activos.'
+              : 'No hay clientes que coincidan con la búsqueda.'}
+          </p>
         ) : (
           <div className="users-table-scroll">
             <table className="users-table">

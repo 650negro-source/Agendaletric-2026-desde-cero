@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AuthLayout from './features/auth/AuthLayout.jsx'
 import LoginPage from './features/auth/LoginPage.jsx'
 import PasswordRecoveryPage from './features/auth/PasswordRecoveryPage.jsx'
 import PasswordChangeForm from './features/auth/PasswordChangeForm.jsx'
@@ -27,7 +28,6 @@ function App() {
       || new URLSearchParams(window.location.search).get('resetToken')
       || ''
   )
-  const [isRequestingPasswordReset, setIsRequestingPasswordReset] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [isRestoringSession, setIsRestoringSession] = useState(() => Boolean(session))
@@ -36,8 +36,19 @@ function App() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
   const [adminSection, setAdminSection] = useState('dashboard')
+  const [adminDashboardFilter, setAdminDashboardFilter] = useState(null)
   const [customerSection, setCustomerSection] = useState('profile')
   const [technicianSection, setTechnicianSection] = useState('appointments')
+
+  function navigateAdminSection(section) {
+    setAdminDashboardFilter(null)
+    setAdminSection(section)
+  }
+
+  function navigateFromDashboard(section, filters) {
+    setAdminDashboardFilter({ section, filters })
+    setAdminSection(section)
+  }
 
   useEffect(() => {
     const token = session?.token
@@ -123,27 +134,28 @@ function App() {
     setSession(updatedSession)
   }
 
-  if (passwordResetToken || (!session && isRequestingPasswordReset)) {
+  if (passwordResetToken) {
     return (
-      <PasswordRecoveryPage
-        token={passwordResetToken}
-        onBack={() => {
-          setPasswordResetToken('')
-          setIsRequestingPasswordReset(false)
-          const url = new URL(window.location.href)
-          url.searchParams.delete('resetToken')
-          url.hash = ''
-          window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
-        }}
-        onResetSuccess={() => {
-          clearSession()
-          setSession(null)
-          const url = new URL(window.location.href)
-          url.searchParams.delete('resetToken')
-          url.hash = ''
-          window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
-        }}
-      />
+      <AuthLayout>
+        <PasswordRecoveryPage
+          token={passwordResetToken}
+          onBack={() => {
+            setPasswordResetToken('')
+            const url = new URL(window.location.href)
+            url.searchParams.delete('resetToken')
+            url.hash = ''
+            window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+          }}
+          onResetSuccess={() => {
+            clearSession()
+            setSession(null)
+            const url = new URL(window.location.href)
+            url.searchParams.delete('resetToken')
+            url.hash = ''
+            window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+          }}
+        />
+      </AuthLayout>
     )
   }
 
@@ -152,11 +164,8 @@ function App() {
       <LoginPage
         error={loginError}
         isSubmitting={isSigningIn}
+        onClearError={() => setLoginError('')}
         onSubmit={handleSignIn}
-        onForgotPassword={() => {
-          setLoginError('')
-          setIsRequestingPasswordReset(true)
-        }}
       />
     )
   }
@@ -232,7 +241,7 @@ function App() {
               className={adminSection === 'dashboard' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'dashboard' ? 'page' : undefined}
-              onClick={() => setAdminSection('dashboard')}
+              onClick={() => navigateAdminSection('dashboard')}
             >
               Resumen
             </button>
@@ -240,7 +249,7 @@ function App() {
               className={adminSection === 'users' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'users' ? 'page' : undefined}
-              onClick={() => setAdminSection('users')}
+              onClick={() => navigateAdminSection('users')}
             >
               Usuarios
             </button>
@@ -248,7 +257,7 @@ function App() {
               className={adminSection === 'clients' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'clients' ? 'page' : undefined}
-              onClick={() => setAdminSection('clients')}
+              onClick={() => navigateAdminSection('clients')}
             >
               Clientes
             </button>
@@ -256,7 +265,7 @@ function App() {
               className={adminSection === 'vehicles' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'vehicles' ? 'page' : undefined}
-              onClick={() => setAdminSection('vehicles')}
+              onClick={() => navigateAdminSection('vehicles')}
             >
               Vehículos
             </button>
@@ -264,7 +273,7 @@ function App() {
               className={adminSection === 'appointments' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'appointments' ? 'page' : undefined}
-              onClick={() => setAdminSection('appointments')}
+              onClick={() => navigateAdminSection('appointments')}
             >
               Citas
             </button>
@@ -272,7 +281,7 @@ function App() {
               className={adminSection === 'technicians' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'technicians' ? 'page' : undefined}
-              onClick={() => setAdminSection('technicians')}
+              onClick={() => navigateAdminSection('technicians')}
             >
               Técnicos y horarios
             </button>
@@ -280,7 +289,7 @@ function App() {
               className={adminSection === 'reports' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'reports' ? 'page' : undefined}
-              onClick={() => setAdminSection('reports')}
+              onClick={() => navigateAdminSection('reports')}
             >
               Reportes técnicos
             </button>
@@ -288,25 +297,65 @@ function App() {
               className={adminSection === 'catalogs' ? 'app-navigation-link is-active' : 'app-navigation-link'}
               type="button"
               aria-current={adminSection === 'catalogs' ? 'page' : undefined}
-              onClick={() => setAdminSection('catalogs')}
+              onClick={() => navigateAdminSection('catalogs')}
             >
               Catálogos
             </button>
           </nav>
           {adminSection === 'dashboard' ? (
-            <DashboardPage session={session} />
+            <DashboardPage session={session} onNavigate={navigateFromDashboard} />
           ) : adminSection === 'catalogs' ? (
             <CatalogosPage session={session} />
           ) : adminSection === 'reports' ? (
-            <ReportesPage session={session} />
+            <ReportesPage
+              key={adminDashboardFilter?.section === 'reports'
+                ? adminDashboardFilter.filters.publicationState
+                : 'all-reports'}
+              session={session}
+              initialPublicationState={
+                adminDashboardFilter?.section === 'reports'
+                  ? adminDashboardFilter.filters.publicationState
+                  : ''
+              }
+            />
           ) : adminSection === 'technicians' ? (
-            <TecnicosPage session={session} />
+            <TecnicosPage
+              key={adminDashboardFilter?.section === 'technicians' &&
+                adminDashboardFilter.filters.activeOnly
+                ? 'active-technicians'
+                : 'all-technicians'}
+              session={session}
+              initialActiveOnly={
+                adminDashboardFilter?.section === 'technicians' &&
+                adminDashboardFilter.filters.activeOnly
+              }
+            />
           ) : adminSection === 'appointments' ? (
-            <CitasPage session={session} />
+            <CitasPage
+              key={adminDashboardFilter?.section === 'appointments'
+                ? JSON.stringify(adminDashboardFilter.filters)
+                : 'all-appointments'}
+              session={session}
+              dashboardFilter={
+                adminDashboardFilter?.section === 'appointments'
+                  ? adminDashboardFilter.filters
+                  : null
+              }
+            />
           ) : adminSection === 'vehicles' ? (
             <VehiculosPage session={session} />
           ) : adminSection === 'clients' ? (
-            <ClientesPage session={session} />
+            <ClientesPage
+              key={adminDashboardFilter?.section === 'clients' &&
+                adminDashboardFilter.filters.activeOnly
+                ? 'active-clients'
+                : 'all-clients'}
+              session={session}
+              initialActiveOnly={
+                adminDashboardFilter?.section === 'clients' &&
+                adminDashboardFilter.filters.activeOnly
+              }
+            />
           ) : (
             <UsersPage session={session} />
           )}

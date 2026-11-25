@@ -1,6 +1,19 @@
 import { apiRequest } from './apiClient.js'
 
 const SESSION_KEY = 'agendaletric.session'
+const REMEMBERED_EMAIL_KEY = 'agendaletric.rememberedEmail'
+
+export function readRememberedEmail() {
+  return window.localStorage.getItem(REMEMBERED_EMAIL_KEY) || ''
+}
+
+export function saveRememberedEmail(correo) {
+  window.localStorage.setItem(REMEMBERED_EMAIL_KEY, correo.trim())
+}
+
+export function clearRememberedEmail() {
+  window.localStorage.removeItem(REMEMBERED_EMAIL_KEY)
+}
 
 export async function signIn({ correo, contrasena }) {
   const response = await apiRequest('/auth/login', {

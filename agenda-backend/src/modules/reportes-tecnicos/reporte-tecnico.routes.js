@@ -6,6 +6,7 @@ const reporteController = require("./reporte-tecnico.controller");
 const { receiveEvidence } = require("./reporte-tecnico.upload");
 const {
   validateReporteId,
+  validateEstadoPublicacion,
   validateArchivoId,
   validateUpdateReporte,
   validateSolicitudCorreccion,
@@ -15,6 +16,12 @@ const router = express.Router();
 
 router.use(authenticate);
 
+router.get(
+  "/estado/:estado",
+  authorizeRoles(1),
+  validateEstadoPublicacion,
+  reporteController.getCitaIdsByPublicationState
+);
 router.get(
   "/:idCita",
   authorizeRoles(1, 2, 3),

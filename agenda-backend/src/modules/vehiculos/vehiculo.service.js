@@ -10,7 +10,7 @@ async function getClienteIdForUser(user, requestedId) {
   if (user.role === 2) {
     const cliente = await vehiculoRepository.findClienteByUserId(user.id);
     if (!cliente) {
-      throw createError("Client not found", 404);
+      throw createError("Customer profile not found", 404);
     }
     return cliente.id_cliente;
   }

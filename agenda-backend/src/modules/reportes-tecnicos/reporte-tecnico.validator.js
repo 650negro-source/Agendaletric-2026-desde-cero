@@ -31,6 +31,19 @@ function validateReporteId(req, res, next) {
   next();
 }
 
+function validateEstadoPublicacion(req, res, next) {
+  const states = ["BORRADOR", "PUBLICADO", "REQUIERE_CORRECCION"];
+  const state = req.params.estado;
+
+  if (!states.includes(state)) {
+    return res.status(400).json({
+      message: "Invalid report publication state",
+    });
+  }
+
+  next();
+}
+
 function validateArchivoId(req, res, next) {
   const id = normalizeInteger(req.params.idArchivo);
 
@@ -94,6 +107,7 @@ function validateSolicitudCorreccion(req, res, next) {
 
 module.exports = {
   validateReporteId,
+  validateEstadoPublicacion,
   validateArchivoId,
   validateUpdateReporte,
   validateSolicitudCorreccion,

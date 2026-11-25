@@ -85,6 +85,14 @@ async function getByCitaId(idCita, user) {
   return response;
 }
 
+async function getCitaIdsByPublicationState(state, user) {
+  if (user.role !== 1) {
+    throw createError("Access denied", 403);
+  }
+
+  return reporteRepository.findCitaIdsByPublicationState(state);
+}
+
 async function updateByCitaId(idCita, user, reporteData) {
   if (![1, 3].includes(user.role)) {
     throw createError("Only administrators and assigned technicians can manage technical reports", 403);
@@ -204,6 +212,7 @@ async function retryNotificationByCitaId(idCita, user) {
 
 module.exports = {
   getByCitaId,
+  getCitaIdsByPublicationState,
   updateByCitaId,
   ensureCanManageByCitaId,
   addArchivo,

@@ -16,6 +16,8 @@ router.post("/", validateCreateCliente, clienteController.createCliente);
 
 router.use(authenticate);
 
+router.post("/me", authorizeRoles(2), validateUpdateCliente, clienteController.createMyCliente);
+
 router.get("/me", authorizeRoles(2), clienteController.getMyCliente);
 
 router.put("/me", authorizeRoles(2), validateUpdateCliente, clienteController.updateMyCliente);

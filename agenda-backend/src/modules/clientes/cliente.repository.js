@@ -112,6 +112,73 @@ async function createWithUser(cliente) {
   }
 }
 
+async function createForUser(idUsuario, cliente) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [users] = await connection.execute(
+      `SELECT u.id_usuario
+       FROM usuario u
+       INNER JOIN rol r ON r.id_rol = u.id_rol_fk
+       WHERE u.id_usuario = ?
+         AND r.nombre = ?
+         AND u.estado = 1
+         AND u.deleted_at IS NULL
+       FOR UPDATE`,
+      [idUsuario, "CUSTOMER"]
+    );
+
+    if (users.length === 0) {
+      const error = new Error("Customer account not found");
+      error.status = 404;
+      throw error;
+    }
+
+    const [existingClients] = await connection.execute(
+      `SELECT id_cliente
+       FROM cliente
+       WHERE id_usuario = ?
+       FOR UPDATE`,
+      [idUsuario]
+    );
+
+    if (existingClients.length > 0) {
+      const error = new Error("Client profile already exists");
+      error.status = 409;
+      throw error;
+    }
+
+    await connection.execute(
+      `UPDATE usuario
+       SET nombre = ?, correo = ?
+       WHERE id_usuario = ?`,
+      [cliente.nombre_completo, cliente.correo, idUsuario]
+    );
+
+    const [result] = await connection.execute(
+      `INSERT INTO cliente
+         (documento_identidad, telefono, direccion, id_usuario)
+       VALUES (?, ?, ?, ?)`,
+      [
+        cliente.documento_identidad,
+        cliente.telefono,
+        cliente.direccion,
+        idUsuario,
+      ]
+    );
+
+    await connection.commit();
+    return result.insertId;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 async function update(id, cliente) {
   const connection = await pool.getConnection();
 
@@ -248,6 +315,7 @@ module.exports = {
   findByUserId,
   findAll,
   createWithUser,
+  createForUser,
   update,
   updateStatus,
   softDelete,

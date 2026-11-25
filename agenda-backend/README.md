@@ -183,9 +183,9 @@ Las cuentas existentes conservan sus contraseñas actuales para que puedan inici
 
 ### Clientes
 
-El registro público crea una cuenta `CUSTOMER` y su perfil en una transacción. La cédula debe tener de 6 a 10 dígitos numéricos y ser única; el celular debe tener 10 dígitos y comenzar por 3. El cliente puede consultar y actualizar su propio perfil, incluida la cédula, siempre que no esté registrada en otra cuenta. Solo `SYSTEM_ADMIN` puede listar, consultar, actualizar, activar, desactivar o dar de baja perfiles de clientes.
+El registro público crea una cuenta `CUSTOMER` y su perfil en una transacción. Si una cuenta antigua de cliente no tiene perfil asociado, puede completar sus datos con `POST /api/clientes/me`; esta operación crea el perfil solo para el usuario autenticado y actualiza su nombre y correo. La cédula debe tener de 6 a 10 dígitos numéricos y ser única; el celular debe tener 10 dígitos y comenzar por 3. El cliente puede consultar y actualizar su propio perfil, incluida la cédula, siempre que no esté registrada en otra cuenta. Solo `SYSTEM_ADMIN` puede listar, consultar, actualizar, activar, desactivar o dar de baja perfiles de clientes.
 
-- `GET /api/clientes/me` y `PUT /api/clientes/me` - Consultar y actualizar el perfil propio (cliente)
+- `GET /api/clientes/me`, `POST /api/clientes/me` y `PUT /api/clientes/me` - Consultar, completar y actualizar el perfil propio (cliente)
 - `GET /api/clientes` - Listar clientes (administrador)
 - `GET /api/clientes/:id` y `PUT /api/clientes/:id` - Consultar y actualizar un cliente (administrador)
 - `PATCH /api/clientes/:id/status` - Activar o desactivar el acceso (administrador)
@@ -240,6 +240,7 @@ La autenticación usa JWT y las rutas protegidas consultan el estado actual de l
 Las rutas están protegidas con JWT. Administradores y técnicos asignados pueden consultar y editar el reporte, cargar/descargar evidencias y publicarlo. Un reporte publicado queda bloqueado para edición y nuevas evidencias; solo administración puede solicitar corrección, tras lo cual vuelve a habilitarse su edición. El cliente propietario solo puede consultar reportes publicados y descargar el PDF; los archivos de evidencia se mantienen privados para administración y el técnico asignado. La publicación y las solicitudes de corrección envían correo SMTP; cada intento se registra como `PENDIENTE`, `ENVIADO` o `FALLIDO`.
 
 - `GET /api/reportes-tecnicos/:idCita` - Consultar reporte
+- `GET /api/reportes-tecnicos/estado/:estado` - Listar IDs de citas con reportes en ese estado (solo administrador)
 - `PUT /api/reportes-tecnicos/:idCita` - Actualizar diagnóstico, procedimiento y observaciones (borrador o corrección solicitada)
 - `POST /api/reportes-tecnicos/:idCita/archivos` - Cargar un archivo JPG o MP4 (máximo 10 MB por archivo; bloqueado tras publicar)
 - `GET /api/reportes-tecnicos/:idCita/archivos/:idArchivo` - Descargar evidencia (administrador o técnico asignado)

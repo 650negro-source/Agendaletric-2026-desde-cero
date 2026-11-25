@@ -22,7 +22,7 @@ El frontend ya incluye:
 - Reportes técnicos por rol: edición y evidencias antes de publicar, solicitud administrativa de corrección y consulta del cliente mediante reporte publicado y PDF.
 - Controles de permisos por rol según el backend (`SYSTEM_ADMIN`, `TECHNICIAN`, `CUSTOMER`).
 - Gestión de usuarios, clientes y catálogos visible solo para administración.
-- Panel administrativo con resumen de citas, reportes y usuarios activos.
+- Panel administrativo con resumen interactivo; sus indicadores abren citas, reportes y directorios con los filtros correspondientes.
 - Manejo de estados de carga, vacío, error y mensajes de éxito.
 - Integración con el cliente HTTP centralizado y validaciones de respuesta en cada servicio.
 
@@ -89,6 +89,7 @@ Administración dispone de un directorio con búsqueda, consulta de detalle, edi
 | Acción | Ruta | Permiso |
 | --- | --- | --- |
 | Consultar perfil propio | `GET /api/clientes/me` | `CUSTOMER` |
+| Completar perfil propio faltante | `POST /api/clientes/me` | `CUSTOMER` |
 | Actualizar perfil propio | `PUT /api/clientes/me` | `CUSTOMER` |
 | Listar clientes | `GET /api/clientes` | `SYSTEM_ADMIN` |
 | Consultar y actualizar cliente | `GET/PUT /api/clientes/:id` | `SYSTEM_ADMIN` |

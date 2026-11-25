@@ -6,7 +6,7 @@ export async function apiRequest(path, {
   body,
   responseType = 'json',
 } = {}) {
-  const headers = { Accept: 'application/json' }
+  const headers = { Accept: responseType === 'blob' ? '*/*' : 'application/json' }
   const isFormData = body instanceof FormData
 
   if (body !== undefined && !isFormData) {
@@ -28,6 +28,10 @@ export async function apiRequest(path, {
   } catch (error) {
     const detail = error instanceof Error ? ` (${error.message})` : ''
     throw new Error(`No fue posible conectar con la API${detail}.`, { cause: error })
+  }
+
+  if (responseType === 'blob' && response.ok) {
+    return response.blob()
   }
 
   const responseText = await response.text()
@@ -53,22 +57,19 @@ export async function apiRequest(path, {
     throw error
   }
 
-  if (responseType === 'blob') {
-    return response.blob()
-  }
-
   return payload
 }
 
 function toSpanishError(message, status) {
   const translations = {
     'Authentication required': 'Debes iniciar sesión para continuar.',
-    'Invalid credentials': 'El correo o la contraseña son incorrectos.',
+    'Invalid credentials': 'El correo o la contraseña no coinciden con una cuenta. Verifica los datos e inténtalo nuevamente.',
     'Invalid or expired token': 'La sesión venció. Inicia sesión nuevamente.',
     'Invalid or inactive user': 'El usuario no existe o está inactivo.',
     'Access denied': 'Tu rol no tiene permiso para realizar esta acción.',
     'Internal server error': 'Ocurrió un error interno en el servidor.',
     'Too many login attempts. Try again in 15 minutes.': 'Demasiados intentos de inicio de sesión. Espera 15 minutos e inténtalo nuevamente.',
+    'Email and password are required': 'Ingresa tu correo electrónico y contraseña.',
     'Email is already registered': 'Ese correo ya está registrado.',
     'Identity document already registered': 'Ese documento de identidad ya está registrado.',
     'Email or identity document is already registered': 'El correo o el documento de identidad ya está registrado.',
@@ -86,6 +87,10 @@ function toSpanishError(message, status) {
     'Role does not exist': 'El rol seleccionado ya no está disponible.',
     'User not found': 'No se encontró el usuario solicitado.',
     'Client not found': 'No se encontró el cliente solicitado.',
+    'Customer profile not found': 'Tu cuenta no tiene un perfil de cliente. Complétalo desde “Mi perfil” para continuar.',
+    'Customer account not found': 'No se encontró una cuenta de cliente activa.',
+    'Client profile already exists': 'El perfil de cliente ya existe. Actualiza la página para continuar.',
+    'Active client profile not found': 'Tu cuenta no tiene un perfil de cliente activo. Complétalo desde “Mi perfil” para continuar.',
     'Invalid client ID': 'El cliente solicitado no es válido.',
     'Vehicle not found': 'No se encontró el vehículo solicitado.',
     'Vehicle plate is already registered': 'Esa placa ya está registrada.',

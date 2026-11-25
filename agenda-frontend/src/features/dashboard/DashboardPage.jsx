@@ -17,7 +17,7 @@ const REPORT_LABELS = {
   REQUIERE_CORRECCION: 'Requieren corrección',
 }
 
-function DashboardPage({ session }) {
+function DashboardPage({ session, onNavigate }) {
   const [summary, setSummary] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -79,22 +79,42 @@ function DashboardPage({ session }) {
       ) : summary ? (
         <>
           <section className="dashboard-metrics" aria-label="Resumen general">
-            <article className="dashboard-metric">
+            <button
+              className="dashboard-metric dashboard-metric--interactive"
+              type="button"
+              onClick={() => onNavigate('appointments', { type: 'today' })}
+              aria-label={`Ver ${summary.citas.hoy} citas de hoy`}
+            >
               <span>Citas de hoy</span>
               <strong>{summary.citas.hoy}</strong>
-            </article>
-            <article className="dashboard-metric">
+            </button>
+            <button
+              className="dashboard-metric dashboard-metric--interactive"
+              type="button"
+              onClick={() => onNavigate('appointments', { type: 'next-seven-days' })}
+              aria-label={`Ver ${summary.citas.proximos_7_dias} citas de los próximos 7 días`}
+            >
               <span>Citas próximos 7 días</span>
               <strong>{summary.citas.proximos_7_dias}</strong>
-            </article>
-            <article className="dashboard-metric">
+            </button>
+            <button
+              className="dashboard-metric dashboard-metric--interactive"
+              type="button"
+              onClick={() => onNavigate('clients', { activeOnly: true })}
+              aria-label={`Ver ${summary.clientes_activos} clientes activos`}
+            >
               <span>Clientes activos</span>
               <strong>{summary.clientes_activos}</strong>
-            </article>
-            <article className="dashboard-metric">
+            </button>
+            <button
+              className="dashboard-metric dashboard-metric--interactive"
+              type="button"
+              onClick={() => onNavigate('technicians', { activeOnly: true })}
+              aria-label={`Ver ${summary.tecnicos_activos} técnicos activos`}
+            >
               <span>Técnicos activos</span>
               <strong>{summary.tecnicos_activos}</strong>
-            </article>
+            </button>
           </section>
 
           <section className="users-card dashboard-card" aria-labelledby="dashboard-appointments-title">
@@ -104,14 +124,21 @@ function DashboardPage({ session }) {
                 <p>Conteo de todas las citas registradas</p>
               </div>
             </div>
-            <dl className="dashboard-breakdown">
+            <ul className="dashboard-breakdown">
               {summary.citas.por_estado.map(({ estado, total }) => (
-                <div className="dashboard-breakdown-item" key={estado}>
-                  <dt>{APPOINTMENT_LABELS[estado] || estado}</dt>
-                  <dd>{total}</dd>
-                </div>
+                <li key={estado}>
+                  <button
+                    className="dashboard-breakdown-item dashboard-breakdown-item--interactive"
+                    type="button"
+                    onClick={() => onNavigate('appointments', { type: 'status', value: estado })}
+                    aria-label={`Ver ${total} citas: ${APPOINTMENT_LABELS[estado] || estado}`}
+                  >
+                    <span>{APPOINTMENT_LABELS[estado] || estado}</span>
+                    <strong>{total}</strong>
+                  </button>
+                </li>
               ))}
-            </dl>
+            </ul>
           </section>
 
           <section className="users-card dashboard-card" aria-labelledby="dashboard-reports-title">
@@ -121,14 +148,21 @@ function DashboardPage({ session }) {
                 <p>Estado actual de publicación</p>
               </div>
             </div>
-            <dl className="dashboard-breakdown">
+            <ul className="dashboard-breakdown">
               {summary.reportes.por_estado.map(({ estado, total }) => (
-                <div className="dashboard-breakdown-item" key={estado}>
-                  <dt>{REPORT_LABELS[estado] || estado}</dt>
-                  <dd>{total}</dd>
-                </div>
+                <li key={estado}>
+                  <button
+                    className="dashboard-breakdown-item dashboard-breakdown-item--interactive"
+                    type="button"
+                    onClick={() => onNavigate('reports', { publicationState: estado })}
+                    aria-label={`Ver ${total} reportes: ${REPORT_LABELS[estado] || estado}`}
+                  >
+                    <span>{REPORT_LABELS[estado] || estado}</span>
+                    <strong>{total}</strong>
+                  </button>
+                </li>
               ))}
-            </dl>
+            </ul>
           </section>
         </>
       ) : (

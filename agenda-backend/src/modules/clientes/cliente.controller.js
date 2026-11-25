@@ -37,6 +37,22 @@ async function getMyCliente(req, res, next) {
   }
 }
 
+async function createMyCliente(req, res, next) {
+  try {
+    const cliente = await clienteService.createClienteForUser(
+      req.user.id,
+      req.body
+    );
+
+    return res.status(201).json({
+      message: "Client profile created successfully",
+      data: cliente,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function getClienteById(req, res, next) {
   try {
     const cliente = await clienteService.getClienteById(req.params.id);
@@ -104,6 +120,7 @@ module.exports = {
   createCliente,
   getClientes,
   getMyCliente,
+  createMyCliente,
   getClienteById,
   updateMyCliente,
   updateCliente,

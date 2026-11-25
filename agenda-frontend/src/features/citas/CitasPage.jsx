@@ -64,12 +64,51 @@ function formatDuration(value) {
   return `${hours} ${hours === 1 ? 'hora' : 'horas'}`
 }
 
-function CitasPage({ session }) {
+function formatLocalDate(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function getDashboardFilterLabel(filter) {
+  if (!filter) return ''
+  if (filter.type === 'today') return 'Citas de hoy'
+  if (filter.type === 'next-seven-days') return 'Citas de los próximos 7 días'
+  return `Citas: ${STATUS_LABELS[filter.value] || filter.value}`
+}
+
+function matchesDashboardFilter(appointment, filter) {
+  if (!filter) return true
+
+  const appointmentDate = String(appointment.fecha_programada).slice(0, 10)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayString = formatLocalDate(today)
+
+  if (filter.type === 'today') {
+    return appointmentDate === todayString && appointment.estado !== 'CANCELADA'
+  }
+
+  if (filter.type === 'next-seven-days') {
+    const lastDate = new Date(today)
+    lastDate.setDate(lastDate.getDate() + 7)
+    return appointmentDate > todayString &&
+      appointmentDate <= formatLocalDate(lastDate) &&
+      ACTIVE_STATES.includes(appointment.estado)
+  }
+
+  return filter.type === 'status' && appointment.estado === filter.value
+}
+
+function CitasPage({ session, dashboardFilter: initialDashboardFilter = null }) {
   const roleId = Number(session.user.id_rol)
   const isAdmin = roleId === ADMIN_ROLE_ID
   const isTechnician = roleId === TECHNICIAN_ROLE_ID
   const isCustomer = roleId === CUSTOMER_ROLE_ID
   const [appointments, setAppointments] = useState([])
+  const [dashboardFilter, setDashboardFilter] = useState(initialDashboardFilter)
   const [vehicles, setVehicles] = useState([])
   const [services, setServices] = useState([])
   const [faultTypes, setFaultTypes] = useState([])
@@ -349,7 +388,11 @@ function CitasPage({ session }) {
     }))
   }
 
-  const sortedAppointments = [...appointments].sort((a, b) => (
+  const filteredAppointments = appointments.filter((appointment) => (
+    matchesDashboardFilter(appointment, dashboardFilter)
+  ))
+  const dashboardFilterLabel = getDashboardFilterLabel(dashboardFilter)
+  const sortedAppointments = [...filteredAppointments].sort((a, b) => (
     `${a.fecha_programada} ${a.hora_programada}`.localeCompare(
       `${b.fecha_programada} ${b.hora_programada}`
     )
@@ -398,21 +441,39 @@ function CitasPage({ session }) {
         <div className="users-toolbar">
           <div>
             <h2 id="appointments-list-title">{isCustomer ? 'Historial de mis citas' : 'Citas registradas'}</h2>
-            <p>{appointments.length} {appointments.length === 1 ? 'cita' : 'citas'}</p>
+            <p>
+              {filteredAppointments.length} {filteredAppointments.length === 1 ? 'cita' : 'citas'}
+              {dashboardFilterLabel ? ` · ${dashboardFilterLabel}` : ''}
+            </p>
           </div>
-          <button
-            className="button button--secondary"
-            type="button"
-            onClick={() => void loadData()}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Actualizando...' : 'Actualizar'}
-          </button>
+          <div className="users-toolbar-actions">
+            {dashboardFilter && (
+              <button
+                className="button button--quiet"
+                type="button"
+                onClick={() => setDashboardFilter(null)}
+              >
+                Mostrar todas
+              </button>
+            )}
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={() => void loadData()}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Actualizando...' : 'Actualizar'}
+            </button>
+          </div>
         </div>
         {isLoading ? (
           <p className="users-state" role="status">Cargando citas...</p>
         ) : sortedAppointments.length === 0 ? (
-          <p className="users-state">Aún no hay citas registradas.</p>
+          <p className="users-state">
+            {dashboardFilter
+              ? 'No hay citas que coincidan con este indicador.'
+              : 'Aún no hay citas registradas.'}
+          </p>
         ) : (
           <div className="users-table-scroll">
             <table className="users-table appointments-table">
