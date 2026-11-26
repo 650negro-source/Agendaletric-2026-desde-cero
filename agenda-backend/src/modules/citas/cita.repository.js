@@ -245,12 +245,12 @@ async function findCitaByIdWithConnection(connection, id) {
        cliente.id_usuario AS id_usuario_cliente,
        u_cliente.nombre AS nombre_cliente,
        u_cliente.correo AS correo_cliente,
-       v.placa,
+       COALESCE(c.vehiculo_placa_historial, v.placa) AS placa,
        u_tecnico.nombre AS nombre_tecnico
      FROM cita c
      INNER JOIN cliente ON cliente.id_cliente = c.id_cliente
      INNER JOIN usuario u_cliente ON u_cliente.id_usuario = cliente.id_usuario
-     INNER JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
+     LEFT JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
      INNER JOIN usuario u_tecnico ON u_tecnico.id_usuario = c.id_usuario_tecnico
      WHERE c.id_cita = ?`,
     [id]
@@ -420,11 +420,12 @@ async function findAll() {
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
-       v.placa, u_tecnico.nombre AS nombre_tecnico
+       COALESCE(c.vehiculo_placa_historial, v.placa) AS placa,
+       u_tecnico.nombre AS nombre_tecnico
      FROM cita c
      INNER JOIN cliente ON cliente.id_cliente = c.id_cliente
      INNER JOIN usuario u_cliente ON u_cliente.id_usuario = cliente.id_usuario
-     INNER JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
+     LEFT JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
      INNER JOIN usuario u_tecnico ON u_tecnico.id_usuario = c.id_usuario_tecnico
      ORDER BY c.fecha_programada, c.hora_programada`
   );
@@ -443,14 +444,15 @@ async function findAllByClienteUserId(idUsuario) {
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
-       v.placa, u_tecnico.nombre AS nombre_tecnico,
+       COALESCE(c.vehiculo_placa_historial, v.placa) AS placa,
+       u_tecnico.nombre AS nombre_tecnico,
        recordatorio.estado_envio AS estado_recordatorio,
        DATE_FORMAT(recordatorio.fecha_programada, '%Y-%m-%d %H:%i')
          AS fecha_recordatorio
      FROM cita c
      INNER JOIN cliente ON cliente.id_cliente = c.id_cliente
      INNER JOIN usuario u_cliente ON u_cliente.id_usuario = cliente.id_usuario
-     INNER JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
+     LEFT JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
      INNER JOIN usuario u_tecnico ON u_tecnico.id_usuario = c.id_usuario_tecnico
      LEFT JOIN recordatorio
        ON recordatorio.id_recordatorio = (
@@ -480,11 +482,12 @@ async function findAllByTechnicianId(idUsuario) {
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
-       v.placa, u_tecnico.nombre AS nombre_tecnico
+       COALESCE(c.vehiculo_placa_historial, v.placa) AS placa,
+       u_tecnico.nombre AS nombre_tecnico
      FROM cita c
      INNER JOIN cliente ON cliente.id_cliente = c.id_cliente
      INNER JOIN usuario u_cliente ON u_cliente.id_usuario = cliente.id_usuario
-     INNER JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
+     LEFT JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
      INNER JOIN usuario u_tecnico ON u_tecnico.id_usuario = c.id_usuario_tecnico
      WHERE c.id_usuario_tecnico = ?
      ORDER BY c.fecha_programada, c.hora_programada`,
@@ -621,7 +624,12 @@ async function changeEstado(
   }
 }
 
-async function cancelarCita(id, idUsuarioActor, estadoAnterior) {
+async function cancelarCita(
+  id,
+  idUsuarioActor,
+  estadoAnterior,
+  enforceCancellationNotice = true
+) {
   const connection = await pool.getConnection();
 
   try {
@@ -647,6 +655,7 @@ async function cancelarCita(id, idUsuarioActor, estadoAnterior) {
       throw createError("Appointment can no longer be cancelled", 409);
     }
     if (
+      enforceCancellationNotice &&
       !(await isAtLeastHoursAhead(
         connection,
         rows[0].fecha_programada,

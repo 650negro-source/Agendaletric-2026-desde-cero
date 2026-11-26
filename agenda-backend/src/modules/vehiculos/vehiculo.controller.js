@@ -71,10 +71,23 @@ async function changeVehiculoStatus(req, res, next) {
   }
 }
 
+async function deleteVehiculo(req, res, next) {
+  try {
+    await vehiculoService.deleteVehiculoPermanently(req.params.id, req.user);
+
+    return res.status(200).json({
+      message: "Vehicle permanently deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createVehiculo,
   getVehiculos,
   getVehiculoById,
   updateVehiculo,
   changeVehiculoStatus,
+  deleteVehiculo,
 };

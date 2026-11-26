@@ -3,6 +3,7 @@ import { getCustomers } from '../../services/customerService.js'
 import {
   changeVehicleStatus,
   createVehicle,
+  deleteVehicle,
   getVehicle,
   getVehicles,
   updateVehicle,
@@ -33,7 +34,9 @@ function VehiculosPage({ session }) {
   const [isCreatingVehicle, setIsCreatingVehicle] = useState(false)
   const [viewingVehicle, setViewingVehicle] = useState(null)
   const [pendingStatus, setPendingStatus] = useState(null)
+  const [pendingPermanentDelete, setPendingPermanentDelete] = useState(null)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [isDeletingVehicle, setIsDeletingVehicle] = useState(false)
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -152,6 +155,27 @@ function VehiculosPage({ session }) {
       setPageError(error.message)
     } finally {
       setIsUpdatingStatus(false)
+    }
+  }
+
+  async function handlePermanentDelete() {
+    if (!pendingPermanentDelete) return
+
+    setIsDeletingVehicle(true)
+    setPageError('')
+    setSuccessMessage('')
+    try {
+      await deleteVehicle(session.token, pendingPermanentDelete.id_vehiculo)
+      setSuccessMessage(
+        'El vehículo se eliminó permanentemente; las citas canceladas se conservaron en el historial.'
+      )
+      setPendingPermanentDelete(null)
+      await loadData()
+    } catch (error) {
+      setPendingPermanentDelete(null)
+      setPageError(error.message)
+    } finally {
+      setIsDeletingVehicle(false)
     }
   }
 
@@ -289,6 +313,17 @@ function VehiculosPage({ session }) {
                           >
                             {isActive ? 'Dar de baja' : 'Activar'}
                           </button>
+                          {isAdmin &&
+                            Number(vehicle.cliente_eliminado) === 1 &&
+                            Number(vehicle.tiene_citas_activas) === 0 && (
+                              <button
+                                className="text-button text-button--danger"
+                                type="button"
+                                onClick={() => setPendingPermanentDelete(vehicle)}
+                              >
+                                Eliminar permanentemente
+                              </button>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -381,6 +416,17 @@ function VehiculosPage({ session }) {
           isConfirming={isUpdatingStatus}
           onCancel={() => setPendingStatus(null)}
           onConfirm={() => void handleStatusChange()}
+        />
+      )}
+      {pendingPermanentDelete && (
+        <ConfirmDialog
+          title="Eliminar vehículo permanentemente"
+          message={`¿Eliminar definitivamente el vehículo ${pendingPermanentDelete.placa}? No se podrá recuperar. Las citas canceladas conservarán los datos del vehículo en su historial.`}
+          confirmLabel="Eliminar permanentemente"
+          confirmingLabel="Eliminando..."
+          isConfirming={isDeletingVehicle}
+          onCancel={() => setPendingPermanentDelete(null)}
+          onConfirm={() => void handlePermanentDelete()}
         />
       )}
     </main>

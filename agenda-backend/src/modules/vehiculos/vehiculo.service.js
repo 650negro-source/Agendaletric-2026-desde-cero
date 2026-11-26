@@ -110,10 +110,28 @@ async function changeVehiculoStatus(id, estado, user) {
   return getVehiculoById(id, user);
 }
 
+async function deleteVehiculoPermanently(id, user) {
+  if (user.role !== 1) {
+    throw createError("Access denied", 403);
+  }
+
+  const result = await vehiculoRepository.deletePermanently(id);
+  if (result.notFound) {
+    throw createError("Vehicle not found", 404);
+  }
+  if (result.clientNotDeleted) {
+    throw createError("Vehicle can only be permanently deleted after its client is deleted", 409);
+  }
+  if (result.activeAppointments) {
+    throw createError("Vehicle with active appointments cannot be permanently deleted", 409);
+  }
+}
+
 module.exports = {
   createVehiculo,
   getVehiculos,
   getVehiculoById,
   updateVehiculo,
   changeVehiculoStatus,
+  deleteVehiculoPermanently,
 };

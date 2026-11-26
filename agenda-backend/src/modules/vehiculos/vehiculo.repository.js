@@ -3,7 +3,16 @@ const pool = require("../../config/database");
 const vehicleSelect = `SELECT v.id_vehiculo, v.placa, v.marca, v.modelo, v.anio,
                               v.color, v.tipo_vehiculo, v.tipo_energia, v.estado,
                               c.id_cliente, u.nombre AS cliente_nombre,
-                              u.correo AS cliente_correo
+                              u.correo AS cliente_correo,
+                              c.deleted_at IS NOT NULL AS cliente_eliminado,
+                              EXISTS (
+                                SELECT 1
+                                FROM cita c_activa
+                                WHERE c_activa.id_vehiculo = v.id_vehiculo
+                                  AND c_activa.estado IN (
+                                    'BORRADOR', 'PROGRAMADA', 'VALIDADA', 'EN_PROCESO'
+                                  )
+                              ) AS tiene_citas_activas
                        FROM vehiculo v
                        INNER JOIN cliente c ON c.id_cliente = v.id_cliente
                        INNER JOIN usuario u ON u.id_usuario = c.id_usuario`;
@@ -191,6 +200,81 @@ async function updateStatus(id, estado) {
   }
 }
 
+async function deletePermanently(id) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [vehicles] = await connection.execute(
+      `SELECT v.id_vehiculo, v.placa, v.marca, v.modelo, v.anio,
+              v.color, v.tipo_vehiculo, v.tipo_energia, c.deleted_at
+       FROM vehiculo v
+       INNER JOIN cliente c ON c.id_cliente = v.id_cliente
+       WHERE v.id_vehiculo = ?
+       FOR UPDATE`,
+      [id]
+    );
+    if (vehicles.length === 0) {
+      await connection.rollback();
+      return { notFound: true };
+    }
+
+    const vehicle = vehicles[0];
+    if (vehicle.deleted_at === null) {
+      await connection.rollback();
+      return { clientNotDeleted: true };
+    }
+
+    const [activeAppointments] = await connection.execute(
+      `SELECT id_cita
+       FROM cita
+       WHERE id_vehiculo = ?
+         AND estado IN ('BORRADOR', 'PROGRAMADA', 'VALIDADA', 'EN_PROCESO')
+       LIMIT 1
+       FOR UPDATE`,
+      [id]
+    );
+    if (activeAppointments.length > 0) {
+      await connection.rollback();
+      return { activeAppointments: true };
+    }
+
+    await connection.execute(
+      `UPDATE cita
+       SET vehiculo_placa_historial = COALESCE(vehiculo_placa_historial, ?),
+           vehiculo_marca_historial = COALESCE(vehiculo_marca_historial, ?),
+           vehiculo_modelo_historial = COALESCE(vehiculo_modelo_historial, ?),
+           vehiculo_anio_historial = COALESCE(vehiculo_anio_historial, ?),
+           vehiculo_color_historial = COALESCE(vehiculo_color_historial, ?),
+           vehiculo_tipo_historial = COALESCE(vehiculo_tipo_historial, ?),
+           vehiculo_energia_historial = COALESCE(vehiculo_energia_historial, ?),
+           id_vehiculo = NULL
+       WHERE id_vehiculo = ?`,
+      [
+        vehicle.placa,
+        vehicle.marca,
+        vehicle.modelo,
+        vehicle.anio,
+        vehicle.color,
+        vehicle.tipo_vehiculo,
+        vehicle.tipo_energia,
+        id,
+      ]
+    );
+    await connection.execute(
+      `DELETE FROM vehiculo
+       WHERE id_vehiculo = ?`,
+      [id]
+    );
+    await connection.commit();
+    return { deleted: true };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 module.exports = {
   findClienteById,
   findClienteByUserId,
@@ -201,4 +285,5 @@ module.exports = {
   create,
   update,
   updateStatus,
+  deletePermanently,
 };

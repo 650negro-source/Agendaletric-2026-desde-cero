@@ -96,6 +96,8 @@ function toSpanishError(message, status) {
     'Vehicle plate is already registered': 'Esa placa ya está registrada.',
     'Vehicle plate cannot be changed after it has appointments': 'No se puede cambiar la placa porque el vehículo tiene citas; registra el vehículo nuevo y da de baja este.',
     'Vehicle with active appointments cannot be deactivated': 'No se puede dar de baja el vehículo mientras tenga citas activas.',
+    'Vehicle can only be permanently deleted after its client is deleted': 'Solo se puede eliminar permanentemente un vehículo cuando su cliente está eliminado.',
+    'Vehicle with active appointments cannot be permanently deleted': 'Cancela todas las citas activas antes de eliminar permanentemente el vehículo.',
     'Plate must follow the Colombian format AAA999': 'La placa debe tener el formato colombiano de 3 letras y 3 números.',
     'Invalid vehicle type': 'Selecciona un tipo de vehículo válido.',
     'Invalid vehicle energy type': 'Selecciona un tipo de energía válido.',

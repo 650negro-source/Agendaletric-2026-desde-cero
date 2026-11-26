@@ -43,3 +43,10 @@ export async function changeVehicleStatus(token, vehicleId, estado) {
     body: { estado },
   })
 }
+
+export async function deleteVehicle(token, vehicleId) {
+  return apiRequest(`/vehiculos/${vehicleId}`, {
+    token,
+    method: 'DELETE',
+  })
+}

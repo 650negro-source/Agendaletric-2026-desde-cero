@@ -174,7 +174,12 @@ async function cancelarCita(id, user) {
   authorizeCita(cita, user);
 
   return publicCita(
-    await citaRepository.cancelarCita(id, user.id, cita.estado)
+    await citaRepository.cancelarCita(
+      id,
+      user.id,
+      cita.estado,
+      user.role === 2
+    )
   );
 }
 

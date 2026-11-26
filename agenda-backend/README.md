@@ -199,10 +199,11 @@ Los clientes pueden registrar y administrar únicamente los vehículos asociados
 - `GET /api/vehiculos` - Listar vehículos propios (cliente) o todos (administrador)
 - `GET /api/vehiculos/:id` y `PUT /api/vehiculos/:id` - Consultar y actualizar un vehículo propio (cliente) o cualquiera (administrador)
 - `PATCH /api/vehiculos/:id/status` - Activar o dar de baja lógicamente un vehículo
+- `DELETE /api/vehiculos/:id` - Eliminación permanente (solo administración; cliente eliminado y sin citas activas)
 
-La baja conserva las citas anteriores y bloquea el uso del vehículo en citas nuevas; no se permite desactivarlo mientras tenga una cita activa. Si el vehículo ya tiene citas, no se puede cambiar su placa porque estas muestran la placa actual del registro. Para reemplazarlo, registra el vehículo nuevo y da de baja el anterior. El propietario no se cambia al editar un vehículo.
+La baja conserva las citas anteriores y bloquea el uso del vehículo en citas nuevas; no se permite desactivarlo mientras tenga una cita activa. El borrado permanente solo se habilita cuando el cliente está eliminado y no hay citas activas; las citas anteriores se conservan con una copia de los datos del vehículo. El propietario no se cambia al editar un vehículo.
 
-Para una instalación nueva, `sql/vehiculo.sql` crea la tabla con las columnas actuales. Si la tabla ya existe, revisa y resuelve primero placas repetidas o con formato distinto a `AAA999`:
+Para una instalación nueva, `sql/citas.sql` incluye las columnas necesarias para conservar los datos del vehículo en el historial. En bases existentes, ejecuta `sql/vehiculo-borrado-permanente.sql` una sola vez antes de actualizar el backend. `sql/vehiculo.sql` crea la tabla de vehículos. Si ya existe, revisa y resuelve primero placas repetidas o con formato distinto a `AAA999`:
 
 ```sql
 SELECT UPPER(TRIM(placa)) AS placa_normalizada, COUNT(*) AS cantidad

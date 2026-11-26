@@ -22,13 +22,13 @@ async function findByCitaId(idCita) {
             cliente.id_usuario AS id_usuario_cliente,
             u_cliente.nombre AS nombre_cliente,
             u_tecnico.nombre AS nombre_tecnico,
-            v.placa
+            COALESCE(c.vehiculo_placa_historial, v.placa) AS placa
      FROM reporte_tecnico r
      INNER JOIN cita c ON c.id_cita = r.id_cita
      INNER JOIN cliente ON cliente.id_cliente = c.id_cliente
      INNER JOIN usuario u_cliente ON u_cliente.id_usuario = cliente.id_usuario
      INNER JOIN usuario u_tecnico ON u_tecnico.id_usuario = c.id_usuario_tecnico
-     INNER JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
+     LEFT JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo
      WHERE r.id_cita = ?`,
     [idCita]
   );

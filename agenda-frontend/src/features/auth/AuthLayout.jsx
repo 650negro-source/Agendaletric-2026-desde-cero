@@ -16,7 +16,7 @@ function AuthLayout({ children }) {
         </div>
 
         <p className="auth-promo-note">
-          Atención especializada para vehículos eléctricos e híbridos.
+          Atención especializada en electricidad y electrónica automotriz.
         </p>
       </aside>
 
