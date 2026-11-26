@@ -1,4 +1,8 @@
 const pool = require("../../config/database");
+const {
+  appointmentChangeNoticeHours,
+  assertCanChangeAppointment,
+} = require("./cita.rules");
 
 const activeStates = ["BORRADOR", "PROGRAMADA", "VALIDADA", "EN_PROCESO"];
 
@@ -243,6 +247,7 @@ async function findCitaByIdWithConnection(connection, id) {
        c.fecha_creacion,
        c.fecha_actualizacion,
        cliente.id_usuario AS id_usuario_cliente,
+       cliente.preferencia_notificacion,
        u_cliente.nombre AS nombre_cliente,
        u_cliente.correo AS correo_cliente,
        COALESCE(c.vehiculo_placa_historial, v.placa) AS placa,
@@ -419,6 +424,7 @@ async function findAll() {
        c.duracion_minutos,
        c.estado, c.descripcion_averia, c.observaciones,
        c.fecha_creacion, c.fecha_actualizacion,
+       cliente.preferencia_notificacion,
        u_cliente.nombre AS nombre_cliente, u_cliente.correo AS correo_cliente,
        COALESCE(c.vehiculo_placa_historial, v.placa) AS placa,
        u_tecnico.nombre AS nombre_tecnico
@@ -447,6 +453,7 @@ async function findAllByClienteUserId(idUsuario) {
        COALESCE(c.vehiculo_placa_historial, v.placa) AS placa,
        u_tecnico.nombre AS nombre_tecnico,
        recordatorio.estado_envio AS estado_recordatorio,
+       recordatorio.medio_envio AS medio_recordatorio,
        DATE_FORMAT(recordatorio.fecha_programada, '%Y-%m-%d %H:%i')
          AS fecha_recordatorio
      FROM cita c
@@ -459,7 +466,7 @@ async function findAllByClienteUserId(idUsuario) {
          SELECT ultimo.id_recordatorio
          FROM recordatorio ultimo
          WHERE ultimo.id_cita = c.id_cita
-           AND ultimo.medio_envio = 'CORREO'
+           AND ultimo.medio_envio IN ('CORREO', 'WHATSAPP')
          ORDER BY ultimo.id_recordatorio DESC
          LIMIT 1
        )
@@ -588,15 +595,19 @@ async function changeEstado(
     let recordatorios = [];
     if (estadoNuevo === "VALIDADA") {
       const cita = await findCitaByIdWithConnection(connection, id);
+      const medioEnvio = cita.preferencia_notificacion === "WHATSAPP"
+        ? "WHATSAPP"
+        : "CORREO";
       const [result] = await connection.execute(
         `INSERT INTO recordatorio
            (id_cita, medio_envio, fecha_programada, fecha_envio, mensaje, estado_envio)
-         VALUES (?, 'CORREO', DATE_SUB(TIMESTAMP(?, ?), INTERVAL 24 HOUR), NULL, ?, 'PENDIENTE')`,
+         VALUES (?, ?, DATE_SUB(TIMESTAMP(?, ?), INTERVAL 24 HOUR), NULL, ?, 'PENDIENTE')`,
         [
           id,
+          medioEnvio,
           cita.fecha_programada,
           cita.hora_programada,
-          `Recordatorio simulado de cita ${cita.codigo_asignacion}`,
+          `Recordatorio simulado de cita ${cita.codigo_asignacion} para ${cita.fecha_programada} ${cita.hora_programada}`,
         ]
       );
       if (result.affectedRows !== 1) {
@@ -627,8 +638,7 @@ async function changeEstado(
 async function cancelarCita(
   id,
   idUsuarioActor,
-  estadoAnterior,
-  enforceCancellationNotice = true
+  estadoAnterior
 ) {
   const connection = await pool.getConnection();
 
@@ -651,19 +661,16 @@ async function cancelarCita(
     if (rows[0].estado !== estadoAnterior) {
       throw createError("Appointment state changed; reload and try again", 409);
     }
-    if (["ATENDIDA", "CANCELADA"].includes(rows[0].estado)) {
-      throw createError("Appointment can no longer be cancelled", 409);
-    }
+    assertCanChangeAppointment(rows[0].estado, "cancelled");
     if (
-      enforceCancellationNotice &&
       !(await isAtLeastHoursAhead(
         connection,
         rows[0].fecha_programada,
         rows[0].hora_programada,
-        12
+        appointmentChangeNoticeHours
       ))
     ) {
-      throw createError("Cancellation requires at least 12 hours of notice", 409);
+      throw createError("Changes require at least 2 hours of notice", 409);
     }
 
     await connection.execute(
@@ -722,18 +729,16 @@ async function reprogramarCita(id, idUsuarioActor, estadoAnterior, fecha, hora) 
     if (rows[0].estado !== estadoAnterior) {
       throw createError("Appointment state changed; reload and try again", 409);
     }
-    if (["ATENDIDA", "CANCELADA"].includes(rows[0].estado)) {
-      throw createError("Appointment can no longer be rescheduled", 409);
-    }
+    assertCanChangeAppointment(rows[0].estado, "rescheduled");
     if (
       !(await isAtLeastHoursAhead(
         connection,
         rows[0].fecha_programada,
         rows[0].hora_programada,
-        12
+        appointmentChangeNoticeHours
       ))
     ) {
-      throw createError("Changes require at least 12 hours of notice", 409);
+      throw createError("Changes require at least 2 hours of notice", 409);
     }
     if (
       !(await isAtLeastHoursAhead(connection, fecha, hora, 24))

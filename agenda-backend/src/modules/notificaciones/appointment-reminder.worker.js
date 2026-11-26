@@ -8,7 +8,7 @@ async function processDueReminders() {
      INNER JOIN cita ON cita.id_cita = recordatorio.id_cita
      SET recordatorio.estado_envio = 'SIMULADO',
          recordatorio.fecha_envio = CURRENT_TIMESTAMP
-     WHERE recordatorio.medio_envio = 'CORREO'
+     WHERE recordatorio.medio_envio IN ('CORREO', 'WHATSAPP')
        AND recordatorio.estado_envio = 'PENDIENTE'
        AND recordatorio.fecha_programada <= CURRENT_TIMESTAMP
        AND cita.estado = 'VALIDADA'`

@@ -28,7 +28,7 @@ const DELIVERY_LABELS = {
   PENDIENTE: 'Pendiente',
   ENVIADO: 'Enviado',
   FALLIDO: 'Fallido',
-  SIMULADO: 'Simulado',
+  SIMULADO: 'Simulado; no se envió',
 }
 
 function formatDate(value) {
@@ -222,7 +222,15 @@ function ReportesPage({ session, initialPublicationState = '' }) {
         selectedAppointment.id_cita
       )
       await refreshReport()
-      if (response.data?.envio?.estado_envio === 'ENVIADO') {
+      if (
+        response.data?.envio?.medio_envio === 'WHATSAPP' &&
+        response.data?.envio?.estado_envio === 'SIMULADO'
+      ) {
+        setSuccessMessage('El reporte se publicó; la notificación de WhatsApp se simuló y no se envió.')
+      } else if (response.data?.envio?.medio_envio === 'WHATSAPP') {
+        setSuccessMessage('El reporte se publicó correctamente.')
+        setDeliveryWarning('La simulación de WhatsApp no se completó. Revisa los datos del cliente y los registros del backend; puedes reintentar la notificación.')
+      } else if (response.data?.envio?.estado_envio === 'ENVIADO') {
         setSuccessMessage('El reporte se publicó y el correo se envió al cliente.')
       } else {
         setSuccessMessage('El reporte se publicó correctamente.')
@@ -275,8 +283,15 @@ function ReportesPage({ session, initialPublicationState = '' }) {
         selectedAppointment.id_cita
       )
       await refreshReport()
-      if (response.data?.envio?.estado_envio === 'ENVIADO') {
+      if (
+        response.data?.envio?.medio_envio === 'WHATSAPP' &&
+        response.data?.envio?.estado_envio === 'SIMULADO'
+      ) {
+        setSuccessMessage('La notificación de WhatsApp se simuló; no se envió al cliente.')
+      } else if (response.data?.envio?.estado_envio === 'ENVIADO') {
         setSuccessMessage('El correo se envió correctamente.')
+      } else if (response.data?.envio?.medio_envio === 'WHATSAPP') {
+        setDeliveryWarning('La simulación de WhatsApp volvió a fallar. Revisa los datos del cliente y los registros del backend.')
       } else {
         setDeliveryWarning('El envío volvió a fallar. Revisa la configuración SMTP del backend.')
       }
@@ -496,7 +511,7 @@ function ReportesPage({ session, initialPublicationState = '' }) {
 
               {canManage && report.ultimo_envio && (
                 <p className="report-delivery-state">
-                  Última notificación: {DELIVERY_LABELS[report.ultimo_envio.estado_envio] || report.ultimo_envio.estado_envio}
+                  Última notificación por {report.ultimo_envio.medio_envio === 'WHATSAPP' ? 'WhatsApp' : 'correo'}: {DELIVERY_LABELS[report.ultimo_envio.estado_envio] || report.ultimo_envio.estado_envio}
                   {report.ultimo_envio.error_detalle
                     ? ` — ${report.ultimo_envio.error_detalle}`
                     : ''}
@@ -510,7 +525,7 @@ function ReportesPage({ session, initialPublicationState = '' }) {
                   onClick={() => void handleRetryNotification()}
                   disabled={isSaving}
                 >
-                  {isSaving ? 'Reintentando...' : 'Reintentar envío de correo'}
+                  {isSaving ? 'Reintentando...' : 'Reintentar notificación'}
                 </button>
               )}
 

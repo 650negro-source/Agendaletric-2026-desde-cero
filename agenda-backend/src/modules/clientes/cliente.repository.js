@@ -27,7 +27,8 @@ async function findByDocumento(documentoIdentidad) {
 async function findById(id) {
   const [rows] = await pool.execute(
     `SELECT c.id_cliente, c.id_usuario, c.documento_identidad, c.telefono,
-            c.direccion, c.estado, u.nombre AS nombre_completo, u.correo
+            c.preferencia_notificacion, c.direccion, c.estado,
+            u.nombre AS nombre_completo, u.correo
      FROM cliente c
      INNER JOIN usuario u ON u.id_usuario = c.id_usuario
      WHERE c.id_cliente = ?
@@ -42,7 +43,8 @@ async function findById(id) {
 async function findByUserId(idUsuario) {
   const [rows] = await pool.execute(
     `SELECT c.id_cliente, c.id_usuario, c.documento_identidad, c.telefono,
-            c.direccion, c.estado, u.nombre AS nombre_completo, u.correo
+            c.preferencia_notificacion, c.direccion, c.estado,
+            u.nombre AS nombre_completo, u.correo
      FROM cliente c
      INNER JOIN usuario u ON u.id_usuario = c.id_usuario
      WHERE c.id_usuario = ?
@@ -57,7 +59,8 @@ async function findByUserId(idUsuario) {
 async function findAll() {
   const [rows] = await pool.execute(
     `SELECT c.id_cliente, c.id_usuario, c.documento_identidad, c.telefono,
-            c.direccion, c.estado, u.nombre AS nombre_completo, u.correo
+            c.preferencia_notificacion, c.direccion, c.estado,
+            u.nombre AS nombre_completo, u.correo
      FROM cliente c
      INNER JOIN usuario u ON u.id_usuario = c.id_usuario
      WHERE c.deleted_at IS NULL
@@ -94,9 +97,15 @@ async function createWithUser(cliente) {
 
     const [clienteResult] = await connection.execute(
       `INSERT INTO cliente
-        (documento_identidad, telefono, direccion, id_usuario)
-       VALUES (?, ?, ?, ?)`,
-      [cliente.documento_identidad, cliente.telefono, cliente.direccion, userResult.insertId]
+        (documento_identidad, telefono, preferencia_notificacion, direccion, id_usuario)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        cliente.documento_identidad,
+        cliente.telefono,
+        cliente.preferencia_notificacion || "CORREO",
+        cliente.direccion,
+        userResult.insertId,
+      ]
     );
 
     await connection.commit();
@@ -159,11 +168,12 @@ async function createForUser(idUsuario, cliente) {
 
     const [result] = await connection.execute(
       `INSERT INTO cliente
-         (documento_identidad, telefono, direccion, id_usuario)
-       VALUES (?, ?, ?, ?)`,
+         (documento_identidad, telefono, preferencia_notificacion, direccion, id_usuario)
+       VALUES (?, ?, ?, ?, ?)`,
       [
         cliente.documento_identidad,
         cliente.telefono,
+        cliente.preferencia_notificacion || "CORREO",
         cliente.direccion,
         idUsuario,
       ]
@@ -208,10 +218,17 @@ async function update(id, cliente) {
 
     const [result] = await connection.execute(
       `UPDATE cliente
-       SET documento_identidad = ?, telefono = ?, direccion = ?
+       SET documento_identidad = ?, telefono = ?, direccion = ?,
+           preferencia_notificacion = COALESCE(?, preferencia_notificacion)
        WHERE id_cliente = ?
          AND deleted_at IS NULL`,
-      [cliente.documento_identidad, cliente.telefono, cliente.direccion, id]
+      [
+        cliente.documento_identidad,
+        cliente.telefono,
+        cliente.direccion,
+        cliente.preferencia_notificacion || null,
+        id,
+      ]
     );
 
     await connection.commit();

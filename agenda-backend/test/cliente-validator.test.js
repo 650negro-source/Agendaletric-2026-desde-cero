@@ -47,7 +47,22 @@ test("customer registration accepts Colombian ID and mobile formats", () => {
   assert.equal(body.documento_identidad, "1234567890");
   assert.equal(body.telefono, "3001234567");
   assert.equal(body.correo, "maria@example.com");
+  assert.equal(body.preferencia_notificacion, "CORREO");
   assert.equal("confirmar_contrasena" in body, false);
+});
+
+test("customer notification preference accepts WhatsApp and rejects unknown channels", () => {
+  const whatsapp = runValidator(validateUpdateCliente, {
+    ...validCustomer(),
+    preferencia_notificacion: "WHATSAPP",
+  });
+  const invalid = runValidator(validateUpdateCliente, {
+    ...validCustomer(),
+    preferencia_notificacion: "SMS",
+  });
+
+  assert.equal(whatsapp.nextCalled, true);
+  assert.equal(invalid.statusCode, 400);
 });
 
 test("customer create and update reject ID documents outside 6 to 10 digits", () => {

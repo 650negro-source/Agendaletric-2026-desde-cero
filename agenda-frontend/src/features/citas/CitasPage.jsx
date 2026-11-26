@@ -20,6 +20,7 @@ import '../users/UsersPage.css'
 import '../users/UsersTable.css'
 
 const ACTIVE_STATES = ['BORRADOR', 'PROGRAMADA', 'VALIDADA', 'EN_PROCESO']
+const CHANGEABLE_STATES = ['BORRADOR', 'PROGRAMADA', 'VALIDADA']
 const STATUS_LABELS = {
   BORRADOR: 'Borrador',
   PROGRAMADA: 'Programada',
@@ -30,7 +31,7 @@ const STATUS_LABELS = {
 }
 const REMINDER_LABELS = {
   PENDIENTE: 'Programado (demostración)',
-  SIMULADO: 'Simulado; no se envió correo',
+  SIMULADO: 'Simulado; no se envió',
   CANCELADO: 'Cancelado',
   ENVIADO: 'Enviado',
   FALLIDO: 'Fallido',
@@ -406,7 +407,7 @@ function CitasPage({ session, dashboardFilter: initialDashboardFilter = null }) 
           <h1>{isCustomer ? 'Mis citas' : 'Citas'}</h1>
           <p className="users-subtitle">
             {isCustomer
-              ? 'Solicita una cita y consulta su estado. Reserva con 24 horas y modifica o cancela con 12 horas de anticipación.'
+              ? 'Solicita una cita y consulta su estado. Reserva con 24 horas y modifica o cancela con al menos 2 horas de anticipación.'
               : isTechnician
                 ? 'Consulta las citas asignadas y actualiza su atención.'
                 : 'Consulta las citas y administra la atención del taller.'}
@@ -426,7 +427,9 @@ function CitasPage({ session, dashboardFilter: initialDashboardFilter = null }) 
 
       {isCustomer && hasActiveAppointment && (
         <p className="feedback feedback--notice">
-          Ya tienes una cita activa. Puedes consultar, cancelar o reprogramar esa cita antes de solicitar otra.
+          {appointments.some((appointment) => appointment.estado === 'EN_PROCESO')
+            ? 'Tienes una cita en proceso; no se puede cancelar ni reprogramar. Contacta al taller si necesitas ayuda.'
+            : 'Ya tienes una cita activa. Puedes cancelarla o reprogramarla con al menos 2 horas de anticipación antes de solicitar otra.'}
         </p>
       )}
       {isCustomer && !isLoading && activeVehicles.length === 0 && (
@@ -490,7 +493,6 @@ function CitasPage({ session, dashboardFilter: initialDashboardFilter = null }) 
               </thead>
               <tbody>
                 {sortedAppointments.map((appointment) => {
-                  const isActive = ACTIVE_STATES.includes(appointment.estado)
                   const isManageable = isAdmin || isTechnician
                   return (
                     <tr key={appointment.id_cita}>
@@ -502,6 +504,8 @@ function CitasPage({ session, dashboardFilter: initialDashboardFilter = null }) 
                         {isCustomer && appointment.estado_recordatorio && (
                           <span className="user-email appointment-reminder" role="status">
                             Recordatorio: {REMINDER_LABELS[appointment.estado_recordatorio] || appointment.estado_recordatorio}
+                            {appointment.medio_recordatorio &&
+                              ` por ${appointment.medio_recordatorio === 'WHATSAPP' ? 'WhatsApp' : 'correo'}`}
                             {appointment.estado_recordatorio === 'PENDIENTE' &&
                               ` · ${formatReminderDate(appointment.fecha_recordatorio)}`}
                           </span>
@@ -534,7 +538,7 @@ function CitasPage({ session, dashboardFilter: initialDashboardFilter = null }) 
                       </td>
                       <td>
                         <div className="user-actions appointment-actions">
-                          {isActive && (
+                                  {CHANGEABLE_STATES.includes(appointment.estado) && (
                             <>
                               <button
                                 className="text-button"

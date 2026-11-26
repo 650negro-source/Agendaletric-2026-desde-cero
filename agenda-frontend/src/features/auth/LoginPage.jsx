@@ -161,7 +161,7 @@ function LoginPage({ error, isSubmitting, onSubmit, onClearError }) {
         <p className="eyebrow">AgendaLetric</p>
         <h1 id="welcome-title">Bienvenido a AgendaLetric</h1>
         <p className="login-description">
-          El taller especializado en vehículos eléctricos e híbridos, a un clic de distancia.
+          Servicio especializado para distintos tipos de vehículos, a un clic de distancia.
         </p>
         <div className="auth-choice-actions">
           <button

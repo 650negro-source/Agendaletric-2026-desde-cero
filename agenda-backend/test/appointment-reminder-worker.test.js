@@ -5,7 +5,7 @@ const { processDueReminders } = require(
   "../src/modules/notificaciones/appointment-reminder.worker"
 );
 
-test("demo worker marks only due pending email reminders for validated appointments", async () => {
+test("demo worker marks only due pending email and WhatsApp reminders for validated appointments", async () => {
   const originalExecute = pool.execute;
   let executedQuery = "";
 
@@ -16,7 +16,7 @@ test("demo worker marks only due pending email reminders for validated appointme
 
   try {
     assert.equal(await processDueReminders(), 2);
-    assert.match(executedQuery, /medio_envio = 'CORREO'/);
+    assert.match(executedQuery, /medio_envio IN \('CORREO', 'WHATSAPP'\)/);
     assert.match(executedQuery, /estado_envio = 'PENDIENTE'/);
     assert.match(executedQuery, /fecha_programada <= CURRENT_TIMESTAMP/);
     assert.match(executedQuery, /cita\.estado = 'VALIDADA'/);

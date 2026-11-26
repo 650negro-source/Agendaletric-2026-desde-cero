@@ -2,7 +2,15 @@ const bcrypt = require("bcrypt");
 const clienteRepository = require("./cliente.repository");
 
 async function createCliente(clienteData) {
-  const { nombre_completo, documento_identidad, telefono, correo, contrasena, direccion } = clienteData;
+  const {
+    nombre_completo,
+    documento_identidad,
+    telefono,
+    correo,
+    contrasena,
+    direccion,
+    preferencia_notificacion,
+  } = clienteData;
 
   const existingEmail = await clienteRepository.findByEmail(correo);
   if (existingEmail) {
@@ -27,6 +35,7 @@ async function createCliente(clienteData) {
     correo,
     contrasena: hashedPassword,
     direccion,
+    preferencia_notificacion,
   };
 
   let clienteIds;
@@ -47,6 +56,7 @@ async function createCliente(clienteData) {
     nombre_completo,
     documento_identidad,
     telefono,
+    preferencia_notificacion: preferencia_notificacion || "CORREO",
     correo,
     direccion,
   };

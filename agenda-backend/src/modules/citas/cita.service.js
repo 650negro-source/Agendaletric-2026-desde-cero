@@ -1,5 +1,6 @@
 const { randomUUID } = require("crypto");
 const citaRepository = require("./cita.repository");
+const { assertCanChangeAppointment } = require("./cita.rules");
 
 function createError(message, status) {
   const error = new Error(message);
@@ -9,7 +10,12 @@ function createError(message, status) {
 
 function publicCita(cita) {
   if (!cita) return cita;
-  const { id_usuario_cliente, correo_cliente, ...response } = cita;
+  const {
+    id_usuario_cliente,
+    correo_cliente,
+    preferencia_notificacion,
+    ...response
+  } = cita;
   return response;
 }
 
@@ -172,13 +178,13 @@ async function cancelarCita(id, user) {
     throw createError("Appointment not found", 404);
   }
   authorizeCita(cita, user);
+  assertCanChangeAppointment(cita.estado, "cancelled");
 
   return publicCita(
     await citaRepository.cancelarCita(
       id,
       user.id,
-      cita.estado,
-      user.role === 2
+      cita.estado
     )
   );
 }
@@ -189,6 +195,7 @@ async function reprogramarCita(id, citaData, user) {
     throw createError("Appointment not found", 404);
   }
   authorizeCita(cita, user);
+  assertCanChangeAppointment(cita.estado, "rescheduled");
 
   return publicCita(
     await citaRepository.reprogramarCita(

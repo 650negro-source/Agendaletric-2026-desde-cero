@@ -1,5 +1,6 @@
 const citaService = require("../citas/cita.service");
 const emailService = require("../notificaciones/email.service");
+const whatsappService = require("../notificaciones/whatsapp.service");
 const reporteRepository = require("./reporte-tecnico.repository");
 
 function createError(message, status) {
@@ -8,7 +9,32 @@ function createError(message, status) {
   return error;
 }
 
-async function deliverNotification(idEnvio, eventType, send) {
+async function deliverNotification(idEnvio, eventType, send, whatsappMessage = null) {
+  if (whatsappMessage) {
+    try {
+      const simulated = whatsappService.simulateMessage(whatsappMessage);
+      return await reporteRepository.updateEnvioStatus(
+        idEnvio,
+        simulated.status,
+        null
+      );
+    } catch (error) {
+      console.error("Report WhatsApp simulation failed", {
+        eventId: idEnvio,
+        eventType,
+        error: error.message,
+      });
+      return reporteRepository.updateEnvioStatus(
+        idEnvio,
+        "FALLIDO",
+        "No se pudo completar la simulación de WhatsApp. Revisa los datos del destinatario y los registros del backend."
+      );
+    }
+  }
+  if (typeof send !== "function") {
+    throw createError("Unsupported report notification channel", 500);
+  }
+
   let deliveryError;
   try {
     await send();
@@ -155,7 +181,10 @@ async function publishByCitaId(idCita, user) {
   const envio = await deliverNotification(
     result.envio.id_envio,
     result.envio.tipo_evento,
-    () => emailService.sendReportPublishedEmail(result.mail)
+    result.mail
+      ? () => emailService.sendReportPublishedEmail(result.mail)
+      : null,
+    result.whatsapp
   );
   return {
     reporte: await getByCitaId(idCita, user),
@@ -195,13 +224,16 @@ async function retryNotificationByCitaId(idCita, user) {
     idCita,
     user.id
   );
-  const send = result.envio.tipo_evento === "PUBLICACION_CLIENTE"
-    ? () => emailService.sendReportPublishedEmail(result.mail)
-    : () => emailService.sendReportCorrectionEmail(result.mail);
+  const send = result.mail
+    ? result.envio.tipo_evento === "PUBLICACION_CLIENTE"
+      ? () => emailService.sendReportPublishedEmail(result.mail)
+      : () => emailService.sendReportCorrectionEmail(result.mail)
+    : null;
   const envio = await deliverNotification(
     result.envio.id_envio,
     result.envio.tipo_evento,
-    send
+    send,
+    result.whatsapp
   );
 
   return {

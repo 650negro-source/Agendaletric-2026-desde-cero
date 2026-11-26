@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS cliente (
     id_cliente INT NOT NULL AUTO_INCREMENT,
     documento_identidad VARCHAR(50) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
+    preferencia_notificacion ENUM('CORREO', 'WHATSAPP')
+        NOT NULL DEFAULT 'CORREO',
     direccion VARCHAR(150) NULL,
     id_usuario INT NOT NULL,
     estado TINYINT NOT NULL DEFAULT 1,

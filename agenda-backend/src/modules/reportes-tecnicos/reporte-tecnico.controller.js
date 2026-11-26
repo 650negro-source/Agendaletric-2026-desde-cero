@@ -236,9 +236,13 @@ async function publishByCitaId(req, res, next) {
     );
 
     return res.status(200).json({
-      message: result.envio.estado_envio === "ENVIADO"
-        ? "Report published and email delivered"
-        : "Report published, but email delivery failed and was recorded",
+      message: result.envio.estado_envio === "SIMULADO"
+        ? "Report published; WhatsApp notification was simulated and not sent"
+        : result.envio.medio_envio === "WHATSAPP"
+          ? "Report published, but WhatsApp simulation failed and was recorded"
+        : result.envio.estado_envio === "ENVIADO"
+          ? "Report published and email delivered"
+          : "Report published, but email delivery failed and was recorded",
       data: result,
     });
   } catch (error) {
@@ -275,7 +279,11 @@ async function retryNotificationByCitaId(req, res, next) {
     return res.status(200).json({
       message: result.envio.estado_envio === "ENVIADO"
         ? "Report notification email delivered"
-        : "Report notification email delivery failed and was recorded",
+        : result.envio.estado_envio === "SIMULADO"
+          ? "WhatsApp notification was simulated and not sent"
+          : result.envio.medio_envio === "WHATSAPP"
+            ? "WhatsApp simulation failed and was recorded"
+          : "Report notification email delivery failed and was recorded",
       data: result,
     });
   } catch (error) {

@@ -9,6 +9,7 @@ function CustomerRegistrationForm({ onCancel, onSuccess }) {
     documento_identidad: '',
     telefono: '',
     correo: '',
+    preferencia_notificacion: 'CORREO',
     direccion: '',
     contrasena: '',
     confirmar_contrasena: '',
@@ -118,6 +119,22 @@ function CustomerRegistrationForm({ onCancel, onSuccess }) {
             required
           />
         </label>
+        <label>
+          Canal preferido para recordatorios y reportes
+          <select
+            name="preferencia_notificacion"
+            value={form.preferencia_notificacion}
+            onChange={updateField}
+          >
+            <option value="CORREO">Correo electrónico</option>
+            <option value="WHATSAPP">WhatsApp (simulación)</option>
+          </select>
+        </label>
+        {form.preferencia_notificacion === 'WHATSAPP' && (
+          <small>
+            Los mensajes de WhatsApp se simulan por ahora; no se enviarán al celular.
+          </small>
+        )}
         <label>
           Dirección <span>(opcional)</span>
           <input

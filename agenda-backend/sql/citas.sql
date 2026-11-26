@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS cita_historial (
 CREATE TABLE IF NOT EXISTS recordatorio (
     id_recordatorio INT NOT NULL AUTO_INCREMENT,
     id_cita INT NOT NULL,
-    medio_envio ENUM('CORREO', 'SMS') NOT NULL,
+    medio_envio ENUM('CORREO', 'WHATSAPP', 'SMS') NOT NULL,
     fecha_programada DATETIME NOT NULL,
     fecha_envio DATETIME NULL,
     mensaje TEXT NOT NULL,

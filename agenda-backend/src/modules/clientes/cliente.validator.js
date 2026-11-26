@@ -40,6 +40,7 @@ function validateCreateCliente(req, res, next) {
     contrasena,
     confirmar_contrasena,
     direccion,
+    preferencia_notificacion,
   } = body;
   const nombre = normalizePersonName(nombre_completo);
   const email = normalizeEmail(correo);
@@ -109,12 +110,21 @@ function validateCreateCliente(req, res, next) {
       message: "Address must not exceed 150 characters",
     });
   }
+  if (
+    preferencia_notificacion !== undefined &&
+    !["CORREO", "WHATSAPP"].includes(preferencia_notificacion)
+  ) {
+    return res.status(400).json({
+      message: "Notification preference must be CORREO or WHATSAPP",
+    });
+  }
 
   body.nombre_completo = nombre;
   body.documento_identidad = documento_identidad.trim();
   body.telefono = telefono.trim();
   body.correo = email;
   body.direccion = typeof direccion === "string" ? direccion.trim() || null : null;
+  body.preferencia_notificacion = preferencia_notificacion || "CORREO";
   delete body.confirmar_contrasena;
   req.body = body;
 
@@ -123,7 +133,14 @@ function validateCreateCliente(req, res, next) {
 
 function validateUpdateCliente(req, res, next) {
   const body = req.body || {};
-  const { nombre_completo, documento_identidad, telefono, correo, direccion } = body;
+  const {
+    nombre_completo,
+    documento_identidad,
+    telefono,
+    correo,
+    direccion,
+    preferencia_notificacion,
+  } = body;
   const nombre = normalizePersonName(nombre_completo);
   const email = normalizeEmail(correo);
 
@@ -173,12 +190,23 @@ function validateUpdateCliente(req, res, next) {
       message: "Address must not exceed 150 characters",
     });
   }
+  if (
+    preferencia_notificacion !== undefined &&
+    !["CORREO", "WHATSAPP"].includes(preferencia_notificacion)
+  ) {
+    return res.status(400).json({
+      message: "Notification preference must be CORREO or WHATSAPP",
+    });
+  }
 
   body.nombre_completo = nombre;
   body.documento_identidad = documento_identidad.trim();
   body.telefono = telefono.trim();
   body.correo = email;
   body.direccion = typeof direccion === "string" ? direccion.trim() || null : null;
+  if (preferencia_notificacion !== undefined) {
+    body.preferencia_notificacion = preferencia_notificacion;
+  }
   req.body = body;
 
   next();

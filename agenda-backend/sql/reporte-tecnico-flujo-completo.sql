@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS reporte_tecnico_envio (
         'SOLICITUD_CORRECCION_TECNICO'
     ) NOT NULL,
     correo_destino VARCHAR(150) NOT NULL,
-    medio_envio ENUM('CORREO') NOT NULL DEFAULT 'CORREO',
+    telefono_destino VARCHAR(20) NULL,
+    medio_envio ENUM('CORREO', 'WHATSAPP') NOT NULL DEFAULT 'CORREO',
     estado_envio ENUM('SIMULADO') NOT NULL DEFAULT 'SIMULADO',
     mensaje TEXT NOT NULL,
     fecha_envio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

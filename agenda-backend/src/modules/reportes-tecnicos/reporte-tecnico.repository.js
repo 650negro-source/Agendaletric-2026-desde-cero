@@ -177,7 +177,7 @@ async function updateEnvioStatus(idEnvio, estado, errorDetalle) {
   }
 
   const [rows] = await pool.execute(
-    `SELECT id_envio, tipo_evento, correo_destino, medio_envio,
+    `SELECT id_envio, tipo_evento, correo_destino, telefono_destino, medio_envio,
             estado_envio, error_detalle, fecha_envio
      FROM reporte_tecnico_envio
      WHERE id_envio = ?`,
@@ -229,6 +229,7 @@ async function createRetryEnvioByCitaId(idCita, idUsuarioActor) {
 
     const [previousEvents] = await connection.execute(
       `SELECT envio.id_usuario_destino, envio.correo_destino,
+              envio.telefono_destino, envio.medio_envio,
               envio.estado_envio, envio.mensaje, usuario.nombre AS nombre_destino
        FROM reporte_tecnico_envio envio
        INNER JOIN usuario
@@ -248,19 +249,21 @@ async function createRetryEnvioByCitaId(idCita, idUsuarioActor) {
     const [result] = await connection.execute(
       `INSERT INTO reporte_tecnico_envio
          (id_reporte, id_usuario_actor, id_usuario_destino, tipo_evento,
-          correo_destino, medio_envio, estado_envio, mensaje)
-       VALUES (?, ?, ?, ?, ?, 'CORREO', 'PENDIENTE', ?)`,
+          correo_destino, telefono_destino, medio_envio, estado_envio, mensaje)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', ?)`,
       [
         reports[0].id_reporte,
         idUsuarioActor,
         previousEvent.id_usuario_destino,
         eventType,
         previousEvent.correo_destino,
+        previousEvent.telefono_destino,
+        previousEvent.medio_envio,
         previousEvent.mensaje,
       ]
     );
     const [envios] = await connection.execute(
-      `SELECT id_envio, tipo_evento, correo_destino, medio_envio,
+      `SELECT id_envio, tipo_evento, correo_destino, telefono_destino, medio_envio,
               estado_envio, error_detalle, fecha_envio
        FROM reporte_tecnico_envio
        WHERE id_envio = ?`,
@@ -272,14 +275,22 @@ async function createRetryEnvioByCitaId(idCita, idUsuarioActor) {
 
     return {
       envio: envios[0],
-      mail: {
-        to: previousEvent.correo_destino,
-        name: previousEvent.nombre_destino,
-        idCita,
-        ...(eventType === "SOLICITUD_CORRECCION_TECNICO"
-          ? { comentario: previousEvent.mensaje }
-          : {}),
-      },
+      mail: previousEvent.medio_envio === "CORREO"
+        ? {
+            to: previousEvent.correo_destino,
+            name: previousEvent.nombre_destino,
+            idCita,
+            ...(eventType === "SOLICITUD_CORRECCION_TECNICO"
+              ? { comentario: previousEvent.mensaje }
+              : {}),
+          }
+        : null,
+      whatsapp: previousEvent.medio_envio === "WHATSAPP"
+        ? {
+            to: previousEvent.telefono_destino,
+            message: previousEvent.mensaje,
+          }
+        : null,
     };
   } catch (error) {
     if (!committed) {
@@ -301,6 +312,8 @@ async function publishByCitaId(idCita, idUsuarioActor) {
     const [rows] = await connection.execute(
       `SELECT r.id_reporte, r.estado_publicacion,
               cliente.id_usuario AS id_usuario_destino,
+              cliente.telefono AS telefono_destino,
+              cliente.preferencia_notificacion,
               u_cliente.nombre AS nombre_destino,
               u_cliente.correo AS correo_destino
        FROM reporte_tecnico r
@@ -326,22 +339,31 @@ async function publishByCitaId(idCita, idUsuarioActor) {
       [idCita]
     );
 
+    const medium = rows[0].preferencia_notificacion === "WHATSAPP"
+      ? "WHATSAPP"
+      : "CORREO";
+    const telefonoDestino = medium === "WHATSAPP"
+      ? rows[0].telefono_destino
+      : null;
+    const mensaje = `Reporte técnico de la cita ${idCita} publicado.`;
     const [envioResult] = await connection.execute(
       `INSERT INTO reporte_tecnico_envio
          (id_reporte, id_usuario_actor, id_usuario_destino, tipo_evento,
-          correo_destino, medio_envio, estado_envio, mensaje)
-       VALUES (?, ?, ?, 'PUBLICACION_CLIENTE', ?, 'CORREO', 'PENDIENTE', ?)`,
+          correo_destino, telefono_destino, medio_envio, estado_envio, mensaje)
+       VALUES (?, ?, ?, 'PUBLICACION_CLIENTE', ?, ?, ?, 'PENDIENTE', ?)`,
       [
         rows[0].id_reporte,
         idUsuarioActor,
         rows[0].id_usuario_destino,
         rows[0].correo_destino,
-        "Notificacion de publicacion del reporte para el cliente.",
+        telefonoDestino,
+        medium,
+        mensaje,
       ]
     );
 
     const [envios] = await connection.execute(
-      `SELECT id_envio, tipo_evento, correo_destino, medio_envio,
+      `SELECT id_envio, tipo_evento, correo_destino, telefono_destino, medio_envio,
               estado_envio, error_detalle, fecha_envio
        FROM reporte_tecnico_envio
        WHERE id_envio = ?`,
@@ -354,11 +376,16 @@ async function publishByCitaId(idCita, idUsuarioActor) {
     return {
       reporte: await findByCitaId(idCita),
       envio: envios[0],
-      mail: {
-        to: rows[0].correo_destino,
-        name: rows[0].nombre_destino,
-        idCita,
-      },
+      mail: medium === "CORREO"
+        ? {
+            to: rows[0].correo_destino,
+            name: rows[0].nombre_destino,
+            idCita,
+          }
+        : null,
+      whatsapp: medium === "WHATSAPP"
+        ? { to: telefonoDestino, message: mensaje }
+        : null,
     };
   } catch (error) {
     if (!committed) {
